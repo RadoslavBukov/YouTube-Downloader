@@ -31,3 +31,9 @@ def download_playlist(url, download_path, file_type, start_time=None, end_time=N
         file = download_video(video_url, download_path, file_type, start_time, end_time)
         downloaded_files.append(file)
     return downloaded_files
+
+url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
+download_path = r"C:\Users\bukov\Downloads"
+file_type = "mp3"
+
+download_video(url, download_path, file_type)
