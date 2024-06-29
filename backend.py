@@ -24,16 +24,25 @@ Function used:
         input: youtube_url
         output: list ( with all existing resolutions of the video)
 """
+import io
+import json
+import urllib
+from io import BytesIO
+import requests
+from PIL import ImageTk, Image
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
 from moviepy.editor import VideoFileClip
 from googleapiclient.discovery import build
+from urllib.request import urlopen
 import os
 
 
+
 # Find song in YouTube by Author and Title -> return video URL
-def find_url_by_name(author, title, api_key):
+def find_url_by_name(author, title):
+    api_key = get_api_key_from_json()
     # Build the YouTube service
     youtube = build('youtube', 'v3', developerKey=api_key)
 
@@ -59,10 +68,10 @@ def find_url_by_name(author, title, api_key):
 # Download Video from url, in selected type with selected quality.
 def download_youtube_video(youtube_url, download_path, file_type, quality):
     # Define the supported file types and their corresponding codecs
-    supported_file_types = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']
+    supported_video_file_types = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']
 
     # Check if the provided file type is supported
-    if file_type not in supported_file_types:
+    if file_type not in supported_video_file_types:
         raise ValueError("Unsupported file type for video. Supported types are 'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv'.")
 
     # Create YouTube object
@@ -79,7 +88,7 @@ def download_youtube_video(youtube_url, download_path, file_type, quality):
     # Determine the base and new file path
     new_file = os.path.join(download_path, f"{yt.author} - {yt.title}({quality}).{file_type}")
 
-    if file_type in supported_file_types:
+    if file_type in supported_video_file_types:
         # Convert video to the desired format if needed
         if file_type != 'mp4':  # If not already in mp4 format, convert it
             video_clip = VideoFileClip(downloaded_file_path)
@@ -101,7 +110,7 @@ def download_youtube_video(youtube_url, download_path, file_type, quality):
 #TODO: Make it work with "m4r" format
 def download_youtube_audio(youtube_url, download_path, file_type):
     # Define the supported file types and their corresponding codecs
-    supported_file_types = {
+    supported_audio_file_types = {
         'mp3': 'libmp3lame',
         'wav': 'pcm_s16le',
         'aac': 'aac',
@@ -110,11 +119,11 @@ def download_youtube_audio(youtube_url, download_path, file_type):
     }
 
     # Check if the provided file type is supported
-    if file_type not in supported_file_types:
+    if file_type not in supported_audio_file_types:
         raise ValueError(
             "Unsupported file type for audio. Supported types are 'mp3', 'wav', 'aac', 'ogg', 'flac'.")
 
-    codec = supported_file_types[file_type]
+    codec = supported_audio_file_types[file_type]
 
     # Create YouTube object
     yt = YouTube(youtube_url)
@@ -217,6 +226,38 @@ def get_video_quality_options(youtube_url):
 
     return resolutions
 
+def extract_thumbnail_from_url(img_url):
+    max_width = 500
+    max_height = 300
+
+    yt = YouTube(img_url)
+    thumbnail_url = yt.thumbnail_url
+    # Split the URL at the '?' character
+    thumbnail_jpg_url = thumbnail_url.split('?')[0]
+
+    response = requests.get(thumbnail_jpg_url)
+    img_data = response.content
+    image = Image.open(BytesIO(img_data))
+    image.thumbnail((max_width, max_height))
+    return image
+
+def get_api_key_from_json():
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the current script
+    file_path = os.path.join(script_dir, 'static_files\setup.json')
+    try:
+        with open(file_path, 'r') as json_file:
+            data = json.load(json_file)
+            if isinstance(data, list) and len(data) > 0:
+                first_entry = data[0]
+                if 'api_key' in first_entry:
+                    return first_entry['api_key']
+                else:
+                    raise KeyError('API key not found in JSON data')
+            else:
+                raise ValueError('Invalid JSON format or empty data')
+    except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError) as e:
+        print(f'Error: {e}')
+        return None
 
 url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
 # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
@@ -231,7 +272,10 @@ audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
 video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
 
 # print(get_video_quality_options(url))
-download_youtube_video(url, download_pat, file_type, "360p")
+# download_youtube_video(url, download_pat, file_type, "360p")
 # download_youtube_audio(url, download_pat, file_type)
 # trim_audio(audio_file_path, 95, 125)
 # trim_video(video_file_path, 95, 125)
+# print(extract_thumbnail_from_url(url))
+# print(get_api_key_from_json())
+# print(find_url_by_name("BTR", "Spasenie"))
