@@ -1,0 +1,20 @@
+[
+    {
+        "api_key": "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c",
+        "supported_file_types": {
+            "mp3": "libmp3lame",
+            "wav": "pcm_s16le",
+            "aac": "aac",
+            "ogg": "libvorbis",
+            "flac": "flac"
+        },
+        "supported_video_file_types": [
+            "mp4",
+            "avi",
+            "mov",
+            "mkv",
+            "flv",
+            "wmv"
+        ]
+    }
+]

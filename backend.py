@@ -1,16 +1,32 @@
 """
-Downloads the audio from a YouTube video and converts it to the specifiewdwadd file type.
+Downloads video and audio from a YouTube, with specific requirements about format, quality and length.
 
-Args:
-    youtube_url (str): URL of the YouTube video to download.
-    download_path (str): Path where the audio will be downloaded.
-
-Returns:
-    str: Path to the downloaded file.
+Function used:
+    - find_url_by_name:
+        input: author, title, api_key(provided from YouTube API)
+        output: youtube_url (of provided inputs)
+    - download_youtube_video:
+        input: youtube_url, download_path, file_type, quality
+        output: path (of downloaded file)
+    - download_youtube_audio:
+        input: youtube_url, download_path, file_type
+        output: path (of downloaded file)
+    - download_playlist:
+        input: youtube_url, download_path, file_type
+        output: path (of downloaded file)
+    - trim_video:
+        input: file_path, start_time(in sec), end_time(in sec)
+        output: path (of trimmed file)
+    - trim_audio:
+        input: file_path, start_time(in sec), end_time(in sec)
+        output: path (of trimmed file)
+    - get_video_quality_options:
+        input: youtube_url
+        output: list ( with all existing resolutions of the video)
 """
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
-# from pydub.utils import set_ffmpeg_path
 from moviepy.editor import VideoFileClip
 from googleapiclient.discovery import build
 import os
@@ -111,7 +127,7 @@ def download_youtube_audio(youtube_url, download_path, file_type):
     new_file = os.path.join(download_path, f"{yt.author} - {yt.title}.{file_type}")
 
     # Convert to audio format if needed
-    audio = mp.AudioFileClip(downloaded_file_path)
+    audio = AudioFileClip(downloaded_file_path)
     audio.write_audiofile(new_file, codec=codec)
     audio.close()
 
@@ -121,13 +137,24 @@ def download_youtube_audio(youtube_url, download_path, file_type):
     return new_file
 
 
-def download_playlist(url, download_path, file_type, start_time=None, end_time=None):
+def download_playlist(url, download_path, file_type):
     pl = Playlist(url)
     downloaded_files = []
+
     for video_url in pl.video_urls:
-        file = download_youtube_video(video_url, download_path, file_type, start_time, end_time)
+        if file_type in ['mp3', 'wav', 'ogg', 'flac', 'm4r']:
+            # Download audio if file_type is audio
+            file = download_youtube_audio(video_url, download_path, file_type)
+        elif file_type in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
+            # Download video if file_type is video
+            file = download_youtube_video(video_url, download_path, file_type)
+        else:
+            raise ValueError(f"Unsupported file type: {file_type}")
+
         downloaded_files.append(file)
+
     return downloaded_files
+
 
 
 def trim_video(input_file, start_time, end_time):
