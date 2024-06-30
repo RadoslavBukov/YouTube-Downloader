@@ -9,7 +9,7 @@ from pytube import YouTube
 from PIL import Image, ImageTk
 from io import BytesIO
 import requests
-from backend import find_url_by_name, download_youtube_video, download_youtube_audio, get_video_quality_options, extract_thumbnail_from_url, get_value_from_json
+from backend import find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist, get_video_quality_options, extract_thumbnail_from_url, get_value_from_json
 
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -23,8 +23,10 @@ class App(customtkinter.CTk):
         script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the current script
         self.logo_path = os.path.join(script_dir, 'static_files', 'logo.jpg')
         self.youtube_frame_path = os.path.join(script_dir, 'static_files', 'empty_frame.jpg')
-        default_img = True
+        self.default_img_active = True
         self.youtube_url = ""
+        self.url_playlist = False
+
         self.quality_options = []
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
         self.audio_format_options = list(self.audio_format_options_dict.keys())
@@ -81,19 +83,22 @@ class App(customtkinter.CTk):
         self.name = self.name_input.get()
         self.title = self.title_input.get()
         self.search_button_name = customtkinter.CTkButton(self.tabview.tab("by Name"), text="Search",
-                                                     border_width=2, text_color=("gray10", "#DCE4EE"), command=self.find_url_by_artist_name)
+                                                          border_width=2, text_color=("gray10", "#DCE4EE"),
+                                                          command=self.find_url_by_artist_name)
         self.search_button_name.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
         # Tab by URL
         self.url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"), placeholder_text="YouTube URL")
         self.url_input.grid(row=0, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
-                                                     border_width=2, text_color=("gray10", "#DCE4EE"), command=lambda: self.update_thumbnail(self.url_input.get()))
+                                                         border_width=2, text_color=("gray10", "#DCE4EE"),
+                                                         command=lambda: self.update_url(self.url_input.get(), False))
         self.search_button_url.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.playlist_url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"), placeholder_text="YouTube Playlist URL")
         self.playlist_url_input.grid(row=1, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_playlist_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
-                                                         border_width=2, text_color=("gray10", "#DCE4EE"), command=lambda: self.update_thumbnail(self.url_input.get()))
+                                                                  border_width=2, text_color=("gray10", "#DCE4EE"),
+                                                                  command=lambda: self.update_url(self.url_input.get(), True))
         self.search_button_playlist_url.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
 # SECTION - Options frame
@@ -105,24 +110,24 @@ class App(customtkinter.CTk):
         self.label_format.grid(row=0, column=0, padx=20, pady=(20, 0), sticky="w")
 
         # Audio format selection
-        self.select_audio_format = customtkinter.CTkOptionMenu(self.options_frame, bg_color="transparent",
+        self.select_audio_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638", button_color="#565b5e",
                                                                values=self.audio_format_options,
                                                                command=self.update_options_video)
         self.select_audio_format.grid(row=0, column=1, padx=20, sticky="s")
         # Video format selection
-        self.select_video_format = customtkinter.CTkOptionMenu(self.options_frame, bg_color="transparent",
+        self.select_video_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638", button_color="#565b5e",
                                                                values=self.video_format_options,
                                                                command=self.update_options_audio)
         self.select_video_format.grid(row=0, column=2, padx=20, sticky="s")
 
         # Select quality
-        self.radio_var = tkinter.IntVar(value=0)
+        self.quality_var = tkinter.IntVar(value=0)
         self.label_quality_group = customtkinter.CTkLabel(master=self.options_frame, text="Select quality:", font=("Helvetica", 16, "bold"))
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 60), sticky="w")
 
         # Select trim
         self.label_trim = customtkinter.CTkLabel(self.options_frame, text="Select trim: (min:sec)", font=("Helvetica", 16, "bold"))
-        self.label_trim.grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="w")
+        self.label_trim.grid(row=5, column=0, columnspan=2, padx=20, pady=(40, 10), sticky="w")
 
         # Start time input
         self.start_input = customtkinter.CTkEntry(self.options_frame, width=20, placeholder_text="Start time (00:00)")
@@ -133,19 +138,18 @@ class App(customtkinter.CTk):
 # SECTION - Visualisation frame
         self.visualisation_frame = customtkinter.CTkFrame(self)
         self.visualisation_frame.grid(row=0, column=2, padx=(20, 20), pady=(20, 0), sticky="nsew")
-        self.radio_var = tkinter.IntVar(value=0)
             # Result
-        self.label_result = customtkinter.CTkLabel(self.visualisation_frame, text="Search result: ", font=("Helvetica", 16, "bold"))
-        self.label_result.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 0), sticky="w")
+        # self.label_result = customtkinter.CTkLabel(self.visualisation_frame, text="Search result: ", font=("Helvetica", 16, "bold"))
+        # self.label_result.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 0), sticky="w")
 
         # Load and display the default image initially
-        default_image = Image.open(self.youtube_frame_path)
-        default_image = default_image.resize((500, 300), Image.LANCZOS)
-        default_img = ImageTk.PhotoImage(default_image)
+        self.default_image = Image.open(self.youtube_frame_path)
+        self.default_image = self.default_image.resize((500, 300), Image.LANCZOS)
+        self.default_img = ImageTk.PhotoImage(self.default_image)
 
-        self.thumbnail_label = customtkinter.CTkLabel(self.visualisation_frame, image=default_img, text="")
-        self.thumbnail_label.image = default_img
-        self.thumbnail_label.grid(row=1, column=0, columnspan=2, padx=20, pady=5)
+        self.thumbnail_label = customtkinter.CTkLabel(self.visualisation_frame, image=self.default_img, text="")
+        self.thumbnail_label.image = self.default_img
+        self.thumbnail_label.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 5))
 
         self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=1, number_of_steps=18)
         self.slider_preview.grid(row=2, column=0, padx=20, columnspan=2, sticky="ew")
@@ -170,13 +174,14 @@ class App(customtkinter.CTk):
                                                      border_width=1, text_color=("gray10", "#DCE4EE"), command=self.browse_folder)
         self.browse_button.grid(row=1, column=1, padx=(0, 20), pady=20, sticky="e")
         # Create browse button
-        self.browse_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD", command=self.browse_folder, width=100, height=50)
-        self.browse_button.grid(row=3, column=0, columnspan=2, rowspan=2, padx=20, pady=(50, 20), sticky="nsew")
+        self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD", command=self.download_media, width=100, height=50)
+        self.download_button.grid(row=3, column=0, columnspan=2, rowspan=2, padx=20, pady=(50, 20), sticky="nsew")
 
         # Initial states:
         self.play_button.configure(state="disabled")
         self.pause_button.configure(state="disabled")
         self.slider_preview.configure(state="disabled")
+        self.download_button.configure(state="disabled")
         self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
         self.select_audio_format.set("Audio:")
@@ -187,34 +192,44 @@ class App(customtkinter.CTk):
         artist = self.name_input.get()
         title = self.title_input.get()
         self.youtube_url = find_url_by_name(artist, title)
-        self.update_thumbnail(self.youtube_url)
+        self.update_url(self.youtube_url, False)
+
+    def update_url(self, url, playlist):
+        if playlist:
+            self.url_playlist = True
+        else:
+            self.url_playlist = False
+
+        self.youtube_url = url
+        self.update_thumbnail(url)
+        self.update_quality_options(url)
 
     def update_thumbnail(self, url):
         try:
             image = extract_thumbnail_from_url(url)
             img = ImageTk.PhotoImage(image)
-            self.default_img = False
+            self.default_img_active = False
             self.youtube_url = url
-            self.update_quality_options(url) #Todo: not right place
         except Exception as e:
             messagebox.showerror("Error", "Wrong URL.")
             default_image = Image.open(self.youtube_frame_path)
             default_image = default_image.resize((500, 300), Image.LANCZOS)
             img = ImageTk.PhotoImage(default_image)
-            self.default_img = True
+            self.default_img_active = True
 
         self.thumbnail_label.configure(image=img)
         self.thumbnail_label.image = img
 
-        if self.default_img:
+        if self.default_img_active:
             self.play_button.configure(state="disabled")
             self.pause_button.configure(state="disabled")
             self.slider_preview.configure(state="disabled")
+            self.download_button.configure(state="disabled")
         else:
             self.play_button.configure(state="normal")
             self.pause_button.configure(state="normal")
             self.slider_preview.configure(state="normal")
-
+            self.download_button.configure(state="normal")
 
     def update_quality_options(self, url):
         self.quality_options = get_video_quality_options(url)
@@ -229,7 +244,7 @@ class App(customtkinter.CTk):
             col = i % 3
             radio_button = customtkinter.CTkRadioButton(master=self.options_frame,
                                                         text=f"{quality}p",
-                                                        variable=self.radio_var,
+                                                        variable=self.quality_var,
                                                         value=i)
             radio_button.grid(row=row, column=col, pady=5, padx=1, sticky="n")
             # self.radio_buttons.append(radio_button)
@@ -245,6 +260,47 @@ class App(customtkinter.CTk):
 
     def update_options_video(self, selected_format):
         self.select_video_format.set("Video:")
+
+    def download_media(self):
+        selected_audio_format = self.select_audio_format.get()
+        selected_video_format = self.select_video_format.get()
+        selected_quality = self.quality_var.get()
+        download_folder = self.download_path.get()
+        audio_file = False
+
+        if not download_folder:
+            messagebox.showerror("Error", "Please select a download folder.")
+            return
+
+        if selected_audio_format == "Audio:" and selected_video_format == "Video:":
+            messagebox.showerror("Error", "Please select either audio or video format.")
+            return
+
+        if selected_audio_format == "Audio:":
+            audio_file = False
+            file_format = selected_video_format
+        else:
+            audio_file = True
+            file_format = selected_audio_format
+
+        if self.url_playlist:
+            download_function = download_playlist
+        else:
+            if audio_file:
+                download_function = download_youtube_audio
+            else:
+                download_function = download_youtube_video
+
+        selected_quality = self.quality_options[selected_quality]
+
+        start_time = self.start_input.get()
+        end_time = self.end_input.get()
+
+        try:
+            download_function(self.youtube_url, download_folder, file_format, selected_quality, start_time, end_time)
+            messagebox.showinfo("Success", "Download completed successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to download media: {str(e)}")
 
     def open_input_dialog_event(self):
         dialog = customtkinter.CTkInputDialog(text="Type in a number:", title="CTkInputDialog")

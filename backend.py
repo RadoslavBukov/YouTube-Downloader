@@ -66,7 +66,7 @@ def find_url_by_name(author, title):
 
 
 # Download Video from url, in selected type with selected quality.
-def download_youtube_video(youtube_url, download_path, file_type, quality):
+def download_youtube_video(youtube_url, download_path, file_type, quality, start_time, end_time):
     # Define the supported file types and their corresponding codecs
     supported_video_file_types = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']
 
@@ -103,12 +103,13 @@ def download_youtube_video(youtube_url, download_path, file_type, quality):
     # Remove the original downloaded file if it was converted or renamed
     if downloaded_file_path != new_file and os.path.exists(downloaded_file_path):
         os.remove(downloaded_file_path)
+    #TODO If start_time and end_time <> 0 => trim function
 
     return new_file
 
 
 #TODO: Make it work with "m4r" format
-def download_youtube_audio(youtube_url, download_path, file_type):
+def download_youtube_audio(youtube_url, download_path, file_type, quality, start_time, end_time):
     # Define the supported file types and their corresponding codecs
     supported_audio_file_types = get_value_from_json("supported_audio_file_types")
 
@@ -137,25 +138,28 @@ def download_youtube_audio(youtube_url, download_path, file_type):
     # Remove the original downloaded file
     os.remove(downloaded_file_path)
 
+    # TODO If start_time and end_time <> 0 => trim function
+
     return new_file
 
 
-def download_playlist(url, download_path, file_type):
+def download_playlist(url, download_path, file_type, quality, start_time, end_time):
     pl = Playlist(url)
     downloaded_files = []
-
+#TODO: Takes formats from json
     for video_url in pl.video_urls:
         if file_type in ['mp3', 'wav', 'ogg', 'flac', 'm4r']:
             # Download audio if file_type is audio
             file = download_youtube_audio(video_url, download_path, file_type)
         elif file_type in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
             # Download video if file_type is video
-            file = download_youtube_video(video_url, download_path, file_type)
+            file = download_youtube_video(video_url, download_path, file_type, quality)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 
         downloaded_files.append(file)
 
+    # TODO If start_time and end_time <> 0 => trim function
     return downloaded_files
 
 
