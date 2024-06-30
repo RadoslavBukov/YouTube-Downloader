@@ -34,7 +34,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("YouTube Downloader")
-        self.geometry(f"{1200}x{650}")
+        self.geometry(f"{1200}x{700}")
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=2)
@@ -98,7 +98,7 @@ class App(customtkinter.CTk):
         self.playlist_url_input.grid(row=1, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_playlist_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
                                                                   border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                                  command=lambda: self.update_url(self.url_input.get(), True))
+                                                                  command=lambda: self.update_url(self.playlist_url_input.get(), True))
         self.search_button_playlist_url.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
 # SECTION - Options frame

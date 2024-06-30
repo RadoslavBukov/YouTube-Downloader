@@ -103,9 +103,15 @@ def download_youtube_video(youtube_url, download_path, file_type, quality, start
     # Remove the original downloaded file if it was converted or renamed
     if downloaded_file_path != new_file and os.path.exists(downloaded_file_path):
         os.remove(downloaded_file_path)
-    #TODO If start_time and end_time <> 0 => trim function
 
-    return new_file
+    if start_time != "" and end_time != "":
+        start_time_seconds = time_to_seconds(start_time)
+        end_time_seconds = time_to_seconds(end_time)
+        trimed_file = trim_video(new_file, start_time_seconds, end_time_seconds)
+        os.remove(new_file)
+        return trimed_file
+    else:
+        return new_file
 
 
 #TODO: Make it work with "m4r" format
@@ -138,9 +144,14 @@ def download_youtube_audio(youtube_url, download_path, file_type, quality, start
     # Remove the original downloaded file
     os.remove(downloaded_file_path)
 
-    # TODO If start_time and end_time <> 0 => trim function
-
-    return new_file
+    if start_time != "" and end_time != "":
+        start_time_seconds = time_to_seconds(start_time)
+        end_time_seconds = time_to_seconds(end_time)
+        trimed_file = trim_audio(new_file, start_time_seconds, end_time_seconds)
+        os.remove(new_file)
+        return trimed_file
+    else:
+        return new_file
 
 
 def download_playlist(url, download_path, file_type, quality, start_time, end_time):
@@ -150,16 +161,15 @@ def download_playlist(url, download_path, file_type, quality, start_time, end_ti
     for video_url in pl.video_urls:
         if file_type in ['mp3', 'wav', 'ogg', 'flac', 'm4r']:
             # Download audio if file_type is audio
-            file = download_youtube_audio(video_url, download_path, file_type)
+            file = download_youtube_audio(video_url, download_path, file_type, quality, start_time, end_time)
         elif file_type in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
             # Download video if file_type is video
-            file = download_youtube_video(video_url, download_path, file_type, quality)
+            file = download_youtube_video(video_url, download_path, file_type, quality, start_time, end_time)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 
         downloaded_files.append(file)
 
-    # TODO If start_time and end_time <> 0 => trim function
     return downloaded_files
 
 
@@ -210,6 +220,7 @@ def trim_audio(input_file, start_time, end_time):
     return output_file
 
 
+#TODO: Some formats doesnt support audio
 def get_video_quality_options(youtube_url):
     yt = YouTube(youtube_url)
 
@@ -258,6 +269,14 @@ def get_value_from_json(key_name):
     except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError) as e:
         print(f'Error: {e}')
         return None
+
+def time_to_seconds(time_str):
+    try:
+        minutes, seconds = map(int, time_str.split(':'))
+        total_minutes = minutes*60 + seconds
+        return total_minutes
+    except ValueError:
+        raise ValueError("Invalid time format. Please use 'min:sec' format.")
 
 url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
 # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
