@@ -1,7 +1,7 @@
 [
     {
         "api_key": "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c",
-        "supported_file_types": {
+        "supported_audio_file_types": {
             "mp3": "libmp3lame",
             "wav": "pcm_s16le",
             "aac": "aac",

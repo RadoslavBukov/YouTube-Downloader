@@ -42,7 +42,7 @@ import os
 
 # Find song in YouTube by Author and Title -> return video URL
 def find_url_by_name(author, title):
-    api_key = get_api_key_from_json()
+    api_key = get_value_from_json("api_key")
     # Build the YouTube service
     youtube = build('youtube', 'v3', developerKey=api_key)
 
@@ -110,13 +110,7 @@ def download_youtube_video(youtube_url, download_path, file_type, quality):
 #TODO: Make it work with "m4r" format
 def download_youtube_audio(youtube_url, download_path, file_type):
     # Define the supported file types and their corresponding codecs
-    supported_audio_file_types = {
-        'mp3': 'libmp3lame',
-        'wav': 'pcm_s16le',
-        'aac': 'aac',
-        'ogg': 'libvorbis',
-        'flac': 'flac',
-    }
+    supported_audio_file_types = get_value_from_json("supported_audio_file_types")
 
     # Check if the provided file type is supported
     if file_type not in supported_audio_file_types:
@@ -241,18 +235,20 @@ def extract_thumbnail_from_url(img_url):
     image.thumbnail((max_width, max_height))
     return image
 
-def get_api_key_from_json():
+
+def get_value_from_json(key_name):
     script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the current script
-    file_path = os.path.join(script_dir, 'static_files\setup.json')
+    file_path = os.path.join(script_dir, 'static_files', 'setup.json')  # Corrected file path with proper path separator
+
     try:
         with open(file_path, 'r') as json_file:
             data = json.load(json_file)
             if isinstance(data, list) and len(data) > 0:
                 first_entry = data[0]
-                if 'api_key' in first_entry:
-                    return first_entry['api_key']
+                if key_name in first_entry:
+                    return first_entry[key_name]
                 else:
-                    raise KeyError('API key not found in JSON data')
+                    raise KeyError(f'Key "{key_name}" not found in JSON data')
             else:
                 raise ValueError('Invalid JSON format or empty data')
     except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError) as e:
@@ -267,7 +263,7 @@ url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
 
 # url = find_url_by_name(author, title)
 download_pat = r"C:\Users\bukov\Downloads"
-file_type = "mp4"
+file_type = "mp3"
 audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
 video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
 
@@ -279,3 +275,4 @@ video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
 # print(extract_thumbnail_from_url(url))
 # print(get_api_key_from_json())
 # print(find_url_by_name("BTR", "Spasenie"))
+# print(get_value_from_json("supported_video_file_types"))

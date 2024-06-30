@@ -9,7 +9,7 @@ from pytube import YouTube
 from PIL import Image, ImageTk
 from io import BytesIO
 import requests
-from backend import find_url_by_name, download_youtube_video, download_youtube_audio, get_video_quality_options, extract_thumbnail_from_url
+from backend import find_url_by_name, download_youtube_video, download_youtube_audio, get_video_quality_options, extract_thumbnail_from_url, get_value_from_json
 
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -26,6 +26,9 @@ class App(customtkinter.CTk):
         default_img = True
         self.youtube_url = ""
         self.quality_options = []
+        self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
+        self.audio_format_options = list(self.audio_format_options_dict.keys())
+        self.video_format_options = get_value_from_json("supported_video_file_types")
 
         # configure window
         self.title("YouTube Downloader")
@@ -97,28 +100,34 @@ class App(customtkinter.CTk):
         self.options_frame = customtkinter.CTkFrame(self)
         self.options_frame.grid(row=1, column=1, padx=(20, 20), pady=(20, 0), sticky="nsew")
         # Select format
-        self.label_format = customtkinter.CTkLabel(self.options_frame, text="Select format: ", font=("Helvetica", 16, "bold"))
+        self.label_format = customtkinter.CTkLabel(self.options_frame, text="Select format: ",
+                                                   font=("Helvetica", 16, "bold"))
         self.label_format.grid(row=0, column=0, padx=20, pady=(20, 0), sticky="w")
-        self.options_audio = customtkinter.CTkComboBox(self.options_frame,
-                                                          values=[".mp3", ".was", ".aac", ".ogg", ".flac"])
-        self.options_audio.grid(row=0, column=1, padx=20, sticky="s")
-        self.options_video = customtkinter.CTkComboBox(self.options_frame,
-                                                          values=[".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv"])
-        self.options_video.grid(row=0, column=2, padx=20, sticky="s")
-            # Select quality
+
+        # Audio format selection
+        self.select_audio_format = customtkinter.CTkOptionMenu(self.options_frame, bg_color="transparent",
+                                                               values=self.audio_format_options,
+                                                               command=self.update_options_video)
+        self.select_audio_format.grid(row=0, column=1, padx=20, sticky="s")
+        # Video format selection
+        self.select_video_format = customtkinter.CTkOptionMenu(self.options_frame, bg_color="transparent",
+                                                               values=self.video_format_options,
+                                                               command=self.update_options_audio)
+        self.select_video_format.grid(row=0, column=2, padx=20, sticky="s")
+
+        # Select quality
         self.radio_var = tkinter.IntVar(value=0)
         self.label_quality_group = customtkinter.CTkLabel(master=self.options_frame, text="Select quality:", font=("Helvetica", 16, "bold"))
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 60), sticky="w")
 
-
-            # Select trim
+        # Select trim
         self.label_trim = customtkinter.CTkLabel(self.options_frame, text="Select trim: (min:sec)", font=("Helvetica", 16, "bold"))
-        self.label_trim.grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 0), sticky="w")
+        self.label_trim.grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="w")
 
         # Start time input
-        self.start_input = customtkinter.CTkEntry(self.options_frame, width=10, placeholder_text="Start time (00:00)")
+        self.start_input = customtkinter.CTkEntry(self.options_frame, width=20, placeholder_text="Start time (00:00)")
         self.start_input.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="nsew")
-        self.end_input = customtkinter.CTkEntry(self.options_frame, width=10, placeholder_text="End time (00:00)")
+        self.end_input = customtkinter.CTkEntry(self.options_frame, width=15, placeholder_text="End time (00:00)")
         self.end_input.grid(row=6, column=1, padx=20, pady=(0, 20), sticky="nsew")
 
 # SECTION - Visualisation frame
@@ -170,8 +179,8 @@ class App(customtkinter.CTk):
         self.slider_preview.configure(state="disabled")
         self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
-        self.options_audio.set("Audio:")
-        self.options_video.set("Video:")
+        self.select_audio_format.set("Audio:")
+        self.select_video_format.set("Video:")
 
 # SECTION - Methods
     def find_url_by_artist_name(self):
@@ -230,6 +239,12 @@ class App(customtkinter.CTk):
             self.options_frame.grid_columnconfigure(col, weight=1, uniform="equal")
 
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 0), sticky="w")
+
+    def update_options_audio(self, selected_format):
+        self.select_audio_format.set("Audio:")
+
+    def update_options_video(self, selected_format):
+        self.select_video_format.set("Video:")
 
     def open_input_dialog_event(self):
         dialog = customtkinter.CTkInputDialog(text="Type in a number:", title="CTkInputDialog")
