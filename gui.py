@@ -84,22 +84,26 @@ class App(customtkinter.CTk):
         self.title = self.title_input.get()
         self.search_button_name = customtkinter.CTkButton(self.tabview.tab("by Name"), text="Search",
                                                           border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                          command=self.find_url_by_artist_name)
+                                                          command=self.loading_find_url_by_artist_name)
         self.search_button_name.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.loading_1 = customtkinter.CTkLabel(self.tabview.tab("by Name"), text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading_1.grid(row=2, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
 
         # Tab by URL
         self.url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"), placeholder_text="YouTube URL")
         self.url_input.grid(row=0, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
                                                          border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                         command=lambda: self.update_url(self.url_input.get(), False))
+                                                         command=lambda: self.loading_update_url(self.url_input.get(), False))
         self.search_button_url.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.playlist_url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"), placeholder_text="YouTube Playlist URL")
         self.playlist_url_input.grid(row=1, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_playlist_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
                                                                   border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                                  command=lambda: self.update_url(self.playlist_url_input.get(), True))
+                                                                  command=lambda: self.loading_update_url(self.playlist_url_input.get(), True))
         self.search_button_playlist_url.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        self.loading_2 = customtkinter.CTkLabel(self.tabview.tab("by URL"), text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading_2.grid(row=2, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
 
 # SECTION - Options frame
         self.options_frame = customtkinter.CTkFrame(self)
@@ -173,11 +177,16 @@ class App(customtkinter.CTk):
         self.browse_button = customtkinter.CTkButton(self.download_frame, text="Browse", fg_color="transparent",
                                                      border_width=1, text_color=("gray10", "#DCE4EE"), command=self.browse_folder)
         self.browse_button.grid(row=1, column=1, padx=(0, 20), pady=20, sticky="e")
-        # Create browse button
-        self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD", command=self.download_media, width=100, height=50)
-        self.download_button.grid(row=3, column=0, columnspan=2, rowspan=2, padx=20, pady=(50, 20), sticky="nsew")
 
-        # Initial states:
+        # Create download button
+        self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD", command=self.loading_download_media, width=100, height=50)
+        self.download_button.grid(row=2, column=0, columnspan=2, rowspan=2, padx=20, pady=(20, 0), sticky="nsew")
+        self.loading = customtkinter.CTkLabel(self.download_frame, text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading.grid(row=4, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
+        self.loadingbar = customtkinter.CTkProgressBar(self.download_frame)
+        self.loadingbar.grid(row=5, column=0, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
+
+# SECTION Initial states:
         self.play_button.configure(state="disabled")
         self.pause_button.configure(state="disabled")
         self.slider_preview.configure(state="disabled")
@@ -186,13 +195,27 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.set("100%")
         self.select_audio_format.set("Audio:")
         self.select_video_format.set("Video:")
+        self.loading.grid_remove()
+        self.loading_1.grid_remove()
+        self.loading_2.grid_remove()
+        self.loadingbar.configure(mode="indeterminnate")
+        self.loadingbar.stop()
 
 # SECTION - Methods
+    def loading_find_url_by_artist_name(self):
+        self.loading_1.grid()
+        self.loading_1.after(100, lambda: self.find_url_by_artist_name())
+
     def find_url_by_artist_name(self):
         artist = self.name_input.get()
         title = self.title_input.get()
         self.youtube_url = find_url_by_name(artist, title)
         self.update_url(self.youtube_url, False)
+        self.loading_1.grid_remove()
+
+    def loading_update_url(self, url, playlist):
+        self.loading_2.grid()
+        self.loading_2.after(100, lambda: self.update_url(url, playlist))
 
     def update_url(self, url, playlist):
         if playlist:
@@ -200,9 +223,11 @@ class App(customtkinter.CTk):
         else:
             self.url_playlist = False
 
+        #TODO: Check the validity of url here, and remove Loading if its not valid
         self.youtube_url = url
         self.update_thumbnail(url)
         self.update_quality_options(url)
+        self.loading_2.grid_remove()
 
     def update_thumbnail(self, url):
         try:
@@ -261,6 +286,11 @@ class App(customtkinter.CTk):
     def update_options_video(self, selected_format):
         self.select_video_format.set("Video:")
 
+    def loading_download_media(self):
+        self.loading.grid()
+        self.loadingbar.start()
+        self.loadingbar.after(200, lambda: self.download_media())
+
     def download_media(self):
         selected_audio_format = self.select_audio_format.get()
         selected_video_format = self.select_video_format.get()
@@ -302,9 +332,8 @@ class App(customtkinter.CTk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to download media: {str(e)}")
 
-    def open_input_dialog_event(self):
-        dialog = customtkinter.CTkInputDialog(text="Type in a number:", title="CTkInputDialog")
-        print("CTkInputDialog:", dialog.get_input())
+        self.loadingbar.stop()
+        self.loading.grid_remove()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -312,9 +341,6 @@ class App(customtkinter.CTk):
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
-
-    def sidebar_button_event(self):
-        print("sidebar_button click")
 
     def browse_folder(self):
         folder_selected = filedialog.askdirectory()
