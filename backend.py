@@ -1,19 +1,20 @@
-"""
+r"""
 Downloads video and audio from a YouTube, with specific requirements about format, quality and length.
 
 Function used:
     - find_url_by_name:
-        input: author, title, api_key(provided from YouTube API)
+        input: author, title
+            *need also api_key(provided from YouTube API) - Included in r"static_file\ setup.json" with key = "api_key"
         output: youtube_url (of provided inputs)
     - download_youtube_video:
-        input: youtube_url, download_path, file_type, quality
+        input: youtube_url, download_path, file_type, quality, start_time, end_time
         output: path (of downloaded file)
     - download_youtube_audio:
-        input: youtube_url, download_path, file_type
+        input: youtube_url, download_path, file_type, quality, start_time, end_time
         output: path (of downloaded file)
     - download_playlist:
-        input: youtube_url, download_path, file_type
-        output: path (of downloaded file)
+        input: youtube_url, download_path, file_type, quality, start_time, end_time
+        output: path (of downloaded files)
     - trim_video:
         input: file_path, start_time(in sec), end_time(in sec)
         output: path (of trimmed file)
@@ -23,21 +24,45 @@ Function used:
     - get_video_quality_options:
         input: youtube_url
         output: list ( with all existing resolutions of the video)
+    - extract_thumbnail_from_url:
+        input: url
+        output: image data
+    - get_value_from_json(key):
+        {key: value}
+        input: data key from the setup.json
+        output: value linked to this key
+    - time_to_seconds(time_str):
+        input: time in format - min:sec (00:00)
+        output: sum of minutes
+        example: input(1:30) -> output (90) sec
+
+Work as console app:
+    python backend.py <"youtube_url" or "Artist Name"> <download_path> type --quality <quality> --start <start_time> --end <end_time>
+        types are:
+            - audio
+            - vide
+            - play list
+        quality, start_time, end_time have default_values = ""
+
+    Examples:
+        - Download audio(mp3) by Artist and Name:
+            python backend.py audio "The Cranberries" "Zombie" "C:\Users\name\Downloads" "mp3"
+        - Download vide(mp4) by url
+            python backend.py video "https://www.youtube.com/watch?v=6Ejga4kJUts" "C:\Users\name\Downloads" "mp4"
 """
-import io
+
 import json
-import urllib
 from io import BytesIO
 import requests
-from PIL import ImageTk, Image
+from PIL import Image
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
 from moviepy.editor import VideoFileClip
 from googleapiclient.discovery import build
-from urllib.request import urlopen
 import os
-
+import sys
+import argparse # Work with console
 
 
 # Find song in YouTube by Author and Title -> return video URL
@@ -66,19 +91,24 @@ def find_url_by_name(author, title):
 
 
 # Download Video from url, in selected type with selected quality.
-def download_youtube_video(youtube_url, download_path, file_type, quality, start_time, end_time):
+def download_youtube_video(youtube_url, download_path, media_type, quality, start_time, end_time):
     # Define the supported file types and their corresponding codecs
-    supported_video_file_types = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']
+    supported_video_file_types = get_value_from_json("supported_video_file_types")
 
     # Check if the provided file type is supported
-    if file_type not in supported_video_file_types:
-        raise ValueError("Unsupported file type for video. Supported types are 'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv'.")
+    if media_type not in supported_video_file_types:
+        raise ValueError("Unsupported file type for video.")
 
     # Create YouTube object
     yt = YouTube(youtube_url)
 
     # Select the video stream based on the desired quality
-    video_stream = yt.streams.filter(type="video", res=quality).first()
+    if quality == "":
+        video_stream = yt.streams.get_highest_resolution()
+        quality = video_stream.resolution
+    else:
+        video_stream = yt.streams.filter(type="video", res=quality).first()
+
     if not video_stream:
         raise ValueError(f"No streams available for quality: {quality}")
 
@@ -86,19 +116,20 @@ def download_youtube_video(youtube_url, download_path, file_type, quality, start
     downloaded_file_path = video_stream.download(output_path=download_path)
 
     # Determine the base and new file path
-    new_file = os.path.join(download_path, f"{yt.author} - {yt.title}({quality}).{file_type}")
+    new_file = os.path.join(download_path, f"{yt.author} - {yt.title}({quality}).{media_type}")
 
-    if file_type in supported_video_file_types:
+    if media_type in supported_video_file_types:
         # Convert video to the desired format if needed
-        if file_type != 'mp4':  # If not already in mp4 format, convert it
+        if media_type != 'mp4':  # If not already in mp4 format, convert it
             video_clip = VideoFileClip(downloaded_file_path)
-            video_clip.write_videofile(new_file, codec="libx264") # Specify codec for non-mp4 formats
+            video_clip.write_videofile(new_file, codec="libx264")  # Specify codec for non-mp4 formats
             video_clip.close()
         else:
             # If already mp4, just rename the file
             os.rename(downloaded_file_path, new_file)
     else:
-        raise ValueError("Unsupported file type for video. Supported types are 'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv'.")
+        raise ValueError(
+            f"Unsupported file type for audio. Supported types are {', '.join(supported_video_file_types)}.")
 
     # Remove the original downloaded file if it was converted or renamed
     if downloaded_file_path != new_file and os.path.exists(downloaded_file_path):
@@ -114,17 +145,18 @@ def download_youtube_video(youtube_url, download_path, file_type, quality, start
         return new_file
 
 
-#TODO: Make it work with "m4r" format
-def download_youtube_audio(youtube_url, download_path, file_type, quality, start_time, end_time):
+# TODO: Make it work with "m4r" format
+def download_youtube_audio(youtube_url, download_path, media_type, start_time, end_time):
     # Define the supported file types and their corresponding codecs
-    supported_audio_file_types = get_value_from_json("supported_audio_file_types")
+    supported_audio_file_types_dict = get_value_from_json("supported_audio_file_types")
+    supported_audio_file_types = list(supported_audio_file_types_dict.keys())
 
     # Check if the provided file type is supported
-    if file_type not in supported_audio_file_types:
+    if media_type not in supported_audio_file_types:
         raise ValueError(
-            "Unsupported file type for audio. Supported types are 'mp3', 'wav', 'aac', 'ogg', 'flac'.")
+            f"Unsupported file type for audio. Supported types are {', '.join(supported_audio_file_types)}.")
 
-    codec = supported_audio_file_types[file_type]
+    codec = supported_audio_file_types_dict[media_type]
 
     # Create YouTube object
     yt = YouTube(youtube_url)
@@ -134,7 +166,7 @@ def download_youtube_audio(youtube_url, download_path, file_type, quality, start
     downloaded_file_path = audio_stream.download(output_path=download_path)
 
     # Determine the base and new file path
-    new_file = os.path.join(download_path, f"{yt.author} - {yt.title}.{file_type}")
+    new_file = os.path.join(download_path, f"{yt.author} - {yt.title}.{media_type}")
 
     # Convert to audio format if needed
     audio = AudioFileClip(downloaded_file_path)
@@ -154,24 +186,23 @@ def download_youtube_audio(youtube_url, download_path, file_type, quality, start
         return new_file
 
 
-def download_playlist(url, download_path, file_type, quality, start_time, end_time):
-    pl = Playlist(url)
+def download_playlist(playlist_url, download_path, media_type, quality, start_time, end_time):
+    pl = Playlist(playlist_url)
     downloaded_files = []
-#TODO: Takes formats from json
+# TODO: Takes formats from json
     for video_url in pl.video_urls:
-        if file_type in ['mp3', 'wav', 'ogg', 'flac', 'm4r']:
+        if media_type in ['mp3', 'wav', 'ogg', 'flac', 'm4r']:
             # Download audio if file_type is audio
-            file = download_youtube_audio(video_url, download_path, file_type, quality, start_time, end_time)
-        elif file_type in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
+            file = download_youtube_audio(video_url, download_path, media_type, quality, start_time, end_time)
+        elif media_type in ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv']:
             # Download video if file_type is video
-            file = download_youtube_video(video_url, download_path, file_type, quality, start_time, end_time)
+            file = download_youtube_video(video_url, download_path, media_type, quality, start_time, end_time)
         else:
-            raise ValueError(f"Unsupported file type: {file_type}")
+            raise ValueError(f"Unsupported file type: {media_type}")
 
         downloaded_files.append(file)
 
     return downloaded_files
-
 
 
 def trim_video(input_file, start_time, end_time):
@@ -215,17 +246,26 @@ def trim_audio(input_file, start_time, end_time):
     output_file = f"{input_filename}_trimmed{input_extension}"
 
     # Export the trimmed audio segment to a new file
-    trimmed_segment.export(output_file, format=input_extension[1:])  # Adjust format as needed
+    trimmed_segment.export(output_file, format=input_extension[1:])
 
     return output_file
 
 
-#TODO: Some formats doesnt support audio
+def get_video_name(youtube_url):
+    yt = YouTube(youtube_url)
+
+    author = yt.author
+    title = yt.title
+
+    return f"{author} - {title}"
+
+
+# TODO: Some formats doesnt support audio
 def get_video_quality_options(youtube_url):
     yt = YouTube(youtube_url)
 
     # Get all streams (both video and audio)
-    streams = yt.streams.filter(type="video")
+    streams = yt.streams.filter(type="video", subtype="mp4")
 
     # Extract unique resolutions from the streams
     resolutions = []
@@ -233,7 +273,9 @@ def get_video_quality_options(youtube_url):
         if stream.resolution and stream.resolution not in resolutions:
             resolutions.append(stream.resolution)
 
+    # Todo: return sorted resolutions
     return resolutions
+
 
 def extract_thumbnail_from_url(img_url):
     max_width = 500
@@ -270,6 +312,7 @@ def get_value_from_json(key_name):
         print(f'Error: {e}')
         return None
 
+
 def time_to_seconds(time_str):
     try:
         minutes, seconds = map(int, time_str.split(':'))
@@ -278,6 +321,74 @@ def time_to_seconds(time_str):
     except ValueError:
         raise ValueError("Invalid time format. Please use 'min:sec' format.")
 
+
+def console_app():
+    parser = argparse.ArgumentParser(description='YouTube Downloader and Converter')
+    parser.add_argument('action', choices=['video', 'audio', 'playlist'], help='Action to perform')
+    parser.add_argument('url_or_author', help='YouTube URL, author, or playlist URL')
+    parser.add_argument('title', nargs='?', default=None, help='Title of the video (optional, if author is provided)')
+    parser.add_argument('download_path', help='Path to download the files')
+    parser.add_argument('media_type', choices=['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'mp3', 'wav', 'aac', 'ogg', 'flac', 'm4r'], default='mp3', help='Media type (default: mp3)')
+    parser.add_argument('--quality', default="", help='Quality of video (e.g., 720p)')
+    parser.add_argument('--start_time', default="", help='Start time for trimming (format: min:sec)')
+    parser.add_argument('--end_time', default="", help='End time for trimming (format: min:sec)')
+    args = parser.parse_args()
+
+    # Debug Print: Print all arguments received
+    print("Received Arguments:")
+    print(f"- Action: {args.action}")
+    print(f"- URL or Author: {args.url_or_author}")
+    if args.title:
+        print(f"- Title: {args.title}")
+    print(f"- Download Path: {args.download_path}")
+    print(f"- Media Type: {args.media_type}")
+    print(f"- Quality: {args.quality}")
+    print(f"- Start Time: {args.start_time}")
+    print(f"- End Time: {args.end_time}")
+
+    # Determine if the provided url_or_author is a URL or author + title
+    if args.title:
+        # Assume url_or_author is the author and title is provided
+        youtube_url = find_url_by_name(args.url_or_author, args.title)
+        if not youtube_url:
+            print("Error: Could not find video for the given author and title.")
+            return
+    else:
+        # Assume url_or_author is the actual URL
+        youtube_url = args.url_or_author
+
+    if args.action == 'video':
+        try:
+            download_youtube_video(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
+            print(f"Video downloaded successfully to {args.download_path}")
+        except Exception as e:
+            print(f"Error downloading video: {str(e)}")
+    elif args.action == 'audio':
+        try:
+            download_youtube_audio(youtube_url, args.download_path, args.media_type, args.start_time, args.end_time)
+            print(f"Audio downloaded successfully to {args.download_path}")
+        except Exception as e:
+            print(f"Error downloading audio: {str(e)}")
+    elif args.action == 'playlist':
+        try:
+            download_playlist(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
+            print(f"Playlist downloaded successfully to {args.download_path}")
+        except Exception as e:
+            print(f"Error downloading playlist: {str(e)}")
+
+
+if __name__ == "__main__":
+    console_app()
+
+
+
+# SECTION: Tests
+# Console App Tests
+# python backend.py audio https://www.youtube.com/watch?v=6Ejga4kJUts "C:\Users\bukov\Downloads" "mp3"
+# python youtube_downloader.py <youtube_url> <download_path> audio --quality <quality> --start <start_time> --end <end_time>
+# python backend.py audio "The Cranberries" "Zombie" "C:\Users\bukov\Downloads" "mp3"
+
+# Function Tests
 url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
 # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
 # author = "BTR"
@@ -286,16 +397,15 @@ url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
 
 # url = find_url_by_name(author, title)
 download_pat = r"C:\Users\bukov\Downloads"
-file_type = "mp3"
-audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
-video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
+file_type = "mp4"
+# audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
+# video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
 
-# print(get_video_quality_options(url))
-# download_youtube_video(url, download_pat, file_type, "360p")
-# download_youtube_audio(url, download_pat, file_type)
+# download_youtube_video(url, download_pat, file_type, "", "", "")
+# download_youtube_audio(url, download_pat, file_type, "", "")
 # trim_audio(audio_file_path, 95, 125)
 # trim_video(video_file_path, 95, 125)
 # print(extract_thumbnail_from_url(url))
-# print(get_api_key_from_json())
-# print(find_url_by_name("BTR", "Spasenie"))
 # print(get_value_from_json("supported_video_file_types"))
+# print(find_url_by_name("BTR", "Spasenie"))
+# print(get_video_name(url))

@@ -1,19 +1,19 @@
+"""
+
+"""
 import os
 import tkinter
-import webbrowser
 import customtkinter
-from tkinter import ttk
+# from ctkmessagebox import CTkMessagebox
 from tkinter import messagebox
 from tkinter import filedialog
-from pytube import YouTube
 from PIL import Image, ImageTk
-from io import BytesIO
-import requests
-from backend import find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist, get_video_quality_options, extract_thumbnail_from_url, get_value_from_json
-
+from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
+                     get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name)
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("green")  # Themes: "blue" (standard), "green", "dark-blue"
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -26,15 +26,16 @@ class App(customtkinter.CTk):
         self.default_img_active = True
         self.youtube_url = ""
         self.url_playlist = False
-
+        self.video_url_name = ""
         self.quality_options = []
+
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
         self.audio_format_options = list(self.audio_format_options_dict.keys())
         self.video_format_options = get_value_from_json("supported_video_file_types")
 
         # configure window
         self.title("YouTube Downloader")
-        self.geometry(f"{1200}x{700}")
+        self.geometry(f"{1300}x{750}")
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=2)
@@ -45,27 +46,30 @@ class App(customtkinter.CTk):
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="YouTube", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="YouTube",
+                                                 font=customtkinter.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=2, pady=(20, 0))
         self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Downloader",
                                                  font=customtkinter.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=1, column=0, padx=2, pady=(0, 20))
         # Load and display logo image
-        self.logo_image = customtkinter.CTkImage(light_image=Image.open(self.logo_path), dark_image=Image.open(self.logo_path),
-                                       size=(150, 150))
+        self.logo_image = customtkinter.CTkImage(light_image=Image.open(self.logo_path),
+                                                 dark_image=Image.open(self.logo_path), size=(150, 150))
         self.logo_label_img = customtkinter.CTkLabel(self.sidebar_frame, image=self.logo_image, text="")
         self.logo_label_img.grid(row=2, column=0, rowspan=2, padx=10, pady=10)
 
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],
-                                                                       command=self.change_appearance_mode_event)
-        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
+        self.appearance_mode_options = customtkinter.CTkOptionMenu(self.sidebar_frame,
+                                                                   values=["Light", "Dark", "System"],
+                                                                   command=self.change_appearance_mode_event)
+        self.appearance_mode_options.grid(row=6, column=0, padx=20, pady=(10, 10))
         self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
         self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],
-                                                               command=self.change_scaling_event)
-        self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
+        self.scaling_options = customtkinter.CTkOptionMenu(self.sidebar_frame,
+                                                           values=["80%", "90%", "100%", "110%", "120%"],
+                                                           command=self.change_scaling_event)
+        self.scaling_options.grid(row=8, column=0, padx=20, pady=(10, 20))
 
 # SECTION - Search Section with TabView's
         self.tabview = customtkinter.CTkTabview(self)
@@ -86,7 +90,8 @@ class App(customtkinter.CTk):
                                                           border_width=2, text_color=("gray10", "#DCE4EE"),
                                                           command=self.loading_find_url_by_artist_name)
         self.search_button_name.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.loading_1 = customtkinter.CTkLabel(self.tabview.tab("by Name"), text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading_1 = customtkinter.CTkLabel(self.tabview.tab("by Name"), text="Loading...",
+                                                font=("Helvetica", 16, "bold"), text_color="#2fa572")
         self.loading_1.grid(row=2, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
 
         # Tab by URL
@@ -94,15 +99,19 @@ class App(customtkinter.CTk):
         self.url_input.grid(row=0, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
                                                          border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                         command=lambda: self.loading_update_url(self.url_input.get(), False))
+                                                         command=lambda: self.loading_update_url(self.url_input.get(),
+                                                                                                 False))
         self.search_button_url.grid(row=0, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.playlist_url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"), placeholder_text="YouTube Playlist URL")
+        self.playlist_url_input = customtkinter.CTkEntry(self.tabview.tab("by URL"),
+                                                         placeholder_text="YouTube Playlist URL")
         self.playlist_url_input.grid(row=1, column=0, padx=(20, 0), pady=(20, 20), sticky="nsew")
         self.search_button_playlist_url = customtkinter.CTkButton(self.tabview.tab("by URL"), text="Search:",
                                                                   border_width=2, text_color=("gray10", "#DCE4EE"),
-                                                                  command=lambda: self.loading_update_url(self.playlist_url_input.get(), True))
+                                                                  command=lambda: self.loading_update_url
+                                                                  (self.playlist_url_input.get(), True))
         self.search_button_playlist_url.grid(row=1, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.loading_2 = customtkinter.CTkLabel(self.tabview.tab("by URL"), text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading_2 = customtkinter.CTkLabel(self.tabview.tab("by URL"), text="Loading...",
+                                                font=("Helvetica", 16, "bold"), text_color="#2fa572")
         self.loading_2.grid(row=2, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
 
 # SECTION - Options frame
@@ -114,23 +123,27 @@ class App(customtkinter.CTk):
         self.label_format.grid(row=0, column=0, padx=20, pady=(20, 0), sticky="w")
 
         # Audio format selection
-        self.select_audio_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638", button_color="#565b5e",
+        self.select_audio_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638",
+                                                               button_color="#565b5e",
                                                                values=self.audio_format_options,
                                                                command=self.update_options_video)
         self.select_audio_format.grid(row=0, column=1, padx=20, sticky="s")
         # Video format selection
-        self.select_video_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638", button_color="#565b5e",
+        self.select_video_format = customtkinter.CTkOptionMenu(self.options_frame, fg_color="#343638",
+                                                               button_color="#565b5e",
                                                                values=self.video_format_options,
                                                                command=self.update_options_audio)
         self.select_video_format.grid(row=0, column=2, padx=20, sticky="s")
 
         # Select quality
         self.quality_var = tkinter.IntVar(value=0)
-        self.label_quality_group = customtkinter.CTkLabel(master=self.options_frame, text="Select quality:", font=("Helvetica", 16, "bold"))
+        self.label_quality_group = customtkinter.CTkLabel(master=self.options_frame, text="Select quality:",
+                                                          font=("Helvetica", 16, "bold"))
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 60), sticky="w")
 
         # Select trim
-        self.label_trim = customtkinter.CTkLabel(self.options_frame, text="Select trim: (min:sec)", font=("Helvetica", 16, "bold"))
+        self.label_trim = customtkinter.CTkLabel(self.options_frame, text="Select trim: (min:sec)",
+                                                 font=("Helvetica", 16, "bold"))
         self.label_trim.grid(row=5, column=0, columnspan=2, padx=20, pady=(40, 10), sticky="w")
 
         # Start time input
@@ -142,8 +155,9 @@ class App(customtkinter.CTk):
 # SECTION - Visualisation frame
         self.visualisation_frame = customtkinter.CTkFrame(self)
         self.visualisation_frame.grid(row=0, column=2, padx=(20, 20), pady=(20, 0), sticky="nsew")
-            # Result
-        # self.label_result = customtkinter.CTkLabel(self.visualisation_frame, text="Search result: ", font=("Helvetica", 16, "bold"))
+        # Result
+        # self.label_result = customtkinter.CTkLabel(self.visualisation_frame, text="Search result: ",
+        #                                            font=("Helvetica", 16, "bold"))
         # self.label_result.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 0), sticky="w")
 
         # Load and display the default image initially
@@ -153,21 +167,25 @@ class App(customtkinter.CTk):
 
         self.thumbnail_label = customtkinter.CTkLabel(self.visualisation_frame, image=self.default_img, text="")
         self.thumbnail_label.image = self.default_img
-        self.thumbnail_label.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 5))
+        self.thumbnail_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 5))
+        self.label_video_name = customtkinter.CTkLabel(self.visualisation_frame, text=self.video_url_name,
+                                                       font=("Helvetica", 16, "bold"))
+        self.label_video_name.grid(row=2, column=0, padx=30, pady=5, sticky="wn")
 
         self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=1, number_of_steps=18)
-        self.slider_preview.grid(row=2, column=0, padx=20, columnspan=2, sticky="ew")
+        self.slider_preview.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
         self.play_button = customtkinter.CTkButton(self.visualisation_frame, text="Play", fg_color="transparent",
-                                                     border_width=0, text_color=("gray10", "#DCE4EE"))
-        self.play_button.grid(row=3, column=0, padx=(20, 20), pady=(10, 10), sticky="nsew")
+                                                   border_width=0, text_color=("gray10", "#DCE4EE"))
+        self.play_button.grid(row=4, column=0, padx=(20, 20), pady=(10, 10), sticky="nsew")
         self.pause_button = customtkinter.CTkButton(self.visualisation_frame, text="Pause", fg_color="transparent",
-                                                     border_width=0, text_color=("gray10", "#DCE4EE"))
-        self.pause_button.grid(row=3, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
+                                                    border_width=0, text_color=("gray10", "#DCE4EE"))
+        self.pause_button.grid(row=4, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
 
 # SECTION - Download frame
         self.download_frame = customtkinter.CTkFrame(self)
         self.download_frame.grid(row=1, column=2, padx=(20, 20), pady=(20, 0), sticky="nsew")
-        self.label_result = customtkinter.CTkLabel(self.download_frame, text="Download to: ", font=("Helvetica", 16, "bold"))
+        self.label_result = customtkinter.CTkLabel(self.download_frame, text="Download to: ",
+                                                   font=("Helvetica", 16, "bold"))
         self.label_result.grid(row=0, column=0, padx=20, pady=20, sticky="w")
         # Create entry to display selected path
         self.download_path = customtkinter.CTkEntry(self.download_frame, width=200)
@@ -175,13 +193,16 @@ class App(customtkinter.CTk):
 
         # Create browse button
         self.browse_button = customtkinter.CTkButton(self.download_frame, text="Browse", fg_color="transparent",
-                                                     border_width=1, text_color=("gray10", "#DCE4EE"), command=self.browse_folder)
+                                                     border_width=1, text_color=("gray10", "#DCE4EE"),
+                                                     command=self.browse_folder)
         self.browse_button.grid(row=1, column=1, padx=(0, 20), pady=20, sticky="e")
 
         # Create download button
-        self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD", command=self.loading_download_media, width=100, height=50)
+        self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD",
+                                                       command=self.loading_download_media, width=100, height=50)
         self.download_button.grid(row=2, column=0, columnspan=2, rowspan=2, padx=20, pady=(20, 0), sticky="nsew")
-        self.loading = customtkinter.CTkLabel(self.download_frame, text="Loading...", font=("Helvetica", 16, "bold"), text_color="#2fa572")
+        self.loading = customtkinter.CTkLabel(self.download_frame, text="Loading...", font=("Helvetica", 16, "bold"),
+                                              text_color="#2fa572")
         self.loading.grid(row=4, column=0, columnspan=2, padx=0, pady=0, sticky="nsew")
         self.loadingbar = customtkinter.CTkProgressBar(self.download_frame)
         self.loadingbar.grid(row=5, column=0, columnspan=2, padx=20, pady=(10, 10), sticky="nsew")
@@ -191,8 +212,8 @@ class App(customtkinter.CTk):
         self.pause_button.configure(state="disabled")
         self.slider_preview.configure(state="disabled")
         self.download_button.configure(state="disabled")
-        self.appearance_mode_optionemenu.set("Dark")
-        self.scaling_optionemenu.set("100%")
+        self.appearance_mode_options.set("Dark")
+        self.scaling_options.set("100%")
         self.select_audio_format.set("Audio:")
         self.select_video_format.set("Video:")
         self.loading.grid_remove()
@@ -223,8 +244,10 @@ class App(customtkinter.CTk):
         else:
             self.url_playlist = False
 
-        #TODO: Check the validity of url here, and remove Loading if its not valid
+        # TODO: Check the validity of url here, and remove Loading if its not valid
         self.youtube_url = url
+        self.video_url_name = get_video_name(url)
+        self.label_video_name.configure(text=self.video_url_name)
         self.update_thumbnail(url)
         self.update_quality_options(url)
         self.loading_2.grid_remove()
@@ -236,7 +259,8 @@ class App(customtkinter.CTk):
             self.default_img_active = False
             self.youtube_url = url
         except Exception as e:
-            messagebox.showerror("Error", "Wrong URL.")
+            messagebox.showerror("Error", f"Wrong URL: {str(e)}")
+            # CTkMessagebox(master=self, title="Error", message="Error URL", icon="cancel")
             default_image = Image.open(self.youtube_frame_path)
             default_image = default_image.resize((500, 300), Image.LANCZOS)
             img = ImageTk.PhotoImage(default_image)
@@ -258,17 +282,18 @@ class App(customtkinter.CTk):
 
     def update_quality_options(self, url):
         self.quality_options = get_video_quality_options(url)
+        sorted_qualiti_options = sorted(self.quality_options, key=self.extract_resolution)
         # Clear existing radio buttons
         # for radio_button in self.radio_buttons:
         #     radio_button.grid_forget()
         # self.radio_buttons.clear()
 
         # Add new radio buttons based on quality options
-        for i, quality in enumerate(self.quality_options):
+        for i, quality in enumerate(sorted_qualiti_options):
             row = 3 + i // 3
             col = i % 3
             radio_button = customtkinter.CTkRadioButton(master=self.options_frame,
-                                                        text=f"{quality}p",
+                                                        text=f"{quality}",
                                                         variable=self.quality_var,
                                                         value=i)
             radio_button.grid(row=row, column=col, pady=5, padx=1, sticky="n")
@@ -280,10 +305,10 @@ class App(customtkinter.CTk):
 
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 0), sticky="w")
 
-    def update_options_audio(self, selected_format):
+    def update_options_audio(self, value=None):
         self.select_audio_format.set("Audio:")
 
-    def update_options_video(self, selected_format):
+    def update_options_video(self, value=None):
         self.select_video_format.set("Video:")
 
     def loading_download_media(self):
@@ -296,7 +321,6 @@ class App(customtkinter.CTk):
         selected_video_format = self.select_video_format.get()
         selected_quality = self.quality_var.get()
         download_folder = self.download_path.get()
-        audio_file = False
 
         if not download_folder:
             messagebox.showerror("Error", "Please select a download folder.")
@@ -327,13 +351,20 @@ class App(customtkinter.CTk):
         end_time = self.end_input.get()
 
         try:
-            download_function(self.youtube_url, download_folder, file_format, selected_quality, start_time, end_time)
+            if audio_file:
+                download_function(self.youtube_url, download_folder, file_format, start_time, end_time)
+            else:
+                download_function(self.youtube_url, download_folder, file_format, selected_quality, start_time,
+                                  end_time)
             messagebox.showinfo("Success", "Download completed successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to download media: {str(e)}")
 
         self.loadingbar.stop()
         self.loading.grid_remove()
+
+    def extract_resolution(self, res):
+        return int(res[:-1])  # Convert the string to integer by removing the 'p' at the end
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -347,6 +378,7 @@ class App(customtkinter.CTk):
         if folder_selected:
             self.download_path.delete(0, customtkinter.END)
             self.download_path.insert(0, folder_selected)
+
 
 if __name__ == "__main__":
     app = App()
