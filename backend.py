@@ -310,8 +310,11 @@ def get_video_name(youtube_url):
     yt = YouTube(youtube_url)
     author = yt.author
     title = yt.title
+    name = f"{author} - {title}"
+    if len(name) > 40:
+        name = f"{author[:15]} - {title[:25]}" + "..." # Slice author and title separately
 
-    return f"{author} - {title}"
+    return name
 
 
 def get_video_quality_options(youtube_url):
@@ -468,7 +471,7 @@ class MyBarLogger(ProgressBarLogger):
 if __name__ == "__main__":
     # url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
     # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
-    url = "https://www.youtube.com/watch?v=7LNKWVn580o"
+    url = "https://www.youtube.com/watch?v=7tSR_FgFClk"
 
     # author = "BTR"
     # title = "Spasenie"

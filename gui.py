@@ -12,6 +12,7 @@ from proglog import ProgressBarLogger
 from pytube import YouTube
 import logging
 from tkinterweb import HtmlFrame
+import webbrowser
 from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
                      get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name)
 
@@ -30,9 +31,9 @@ class App(customtkinter.CTk):
         self.logo_path = os.path.join(script_dir, 'static_files', 'logo.jpg')
         self.youtube_frame_path = os.path.join(script_dir, 'static_files', 'empty_frame.jpg')
         self.default_img_active = True
-        self.youtube_url = "www.google.com/search"
+        self.youtube_url = ''
         self.url_playlist = False
-        self.video_url_name = ""
+        self.video_url_name = ''
         self.quality_options = []
 
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
@@ -41,7 +42,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("YouTube Downloader")
-        self.geometry(f"{1300}x{750}")
+        self.geometry(f"{1350}x{800}")
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=2)
@@ -183,8 +184,9 @@ class App(customtkinter.CTk):
         # self.youtube_frame.load_website(self.youtube_url)
 
         self.label_video_name = customtkinter.CTkLabel(self.visualisation_frame, text=self.video_url_name,
-                                                       font=("Helvetica", 16, "bold"))
+                                                       cursor="hand2", font=("Helvetica", 16, "bold", "underline"))
         self.label_video_name.grid(row=2, column=0, padx=30, pady=5, sticky="wn")
+        self.label_video_name.bind("<Button-1>", self.open_url_to_system_browser)
 
         self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=1, number_of_steps=18)
         self.slider_preview.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
@@ -225,7 +227,7 @@ class App(customtkinter.CTk):
         self.progress_label.grid(row=5, column=0, columnspan=2, padx=20, pady=10, sticky="w")
 
         self.progress_bar = customtkinter.CTkProgressBar(self.download_frame, mode='determinate')
-        self.progress_bar.grid(row=6, column=0, columnspan=2, padx=20, pady=10, sticky="w")
+        self.progress_bar.grid(row=6, column=0, columnspan=3, padx=20, pady=10, sticky="w")
 
 # SECTION Initial states:
         self.play_button.configure(state="disabled")
@@ -259,17 +261,13 @@ class App(customtkinter.CTk):
         self.loading_2.after(100, lambda: self.update_url(url, playlist))
 
     def update_url(self, url, playlist):
-        # TODO: Check the validity of url here, and remove Loading if its not valid
         # Check if the URL is a valid YouTube URL
         try:
             yt = YouTube(url)
-            # Assuming no exceptions raised, URL is valid
         except Exception as e:
             messagebox.showerror("Error", f"Invalid YouTube URL: {str(e)}")
             self.loading_2.grid_remove()
             return
-
-
 
         if playlist:
             self.url_playlist = True
@@ -290,7 +288,7 @@ class App(customtkinter.CTk):
             self.default_img_active = False
             self.youtube_url = url
         except Exception as e:
-            messagebox.showerror("Error", f"Wrong URL: {str(e)}")
+            messagebox.showerror("Error", f"Extracting thumbnail failed: {str(e)}")
             # CTkMessagebox(master=self, title="Error", message="Error URL", icon="cancel")
             default_image = Image.open(self.youtube_frame_path)
             default_image = default_image.resize((500, 300), Image.LANCZOS)
@@ -312,8 +310,11 @@ class App(customtkinter.CTk):
             self.download_button.configure(state="normal")
 
     def update_quality_options(self, url):
-        self.quality_options = get_video_quality_options(url)
-        # sorted_qualiti_options = sorted(self.quality_options, key=self.extract_resolution)
+        try:
+            self.quality_options = get_video_quality_options(url)
+            # sorted_qualiti_options = sorted(self.quality_options, key=self.extract_resolution)
+        except Exception as e:
+            messagebox.showerror("Error", f"Extracting quality options failed: {str(e)}")
 
         # Add new radio buttons based on quality options
         for i, quality in enumerate(self.quality_options):
@@ -412,8 +413,8 @@ class App(customtkinter.CTk):
             self.download_path.delete(0, customtkinter.END)
             self.download_path.insert(0, folder_selected)
 
-
-
+    def open_url_to_system_browser(self, event):
+        webbrowser.open_new_tab(self.youtube_url)
 
 
 if __name__ == "__main__":
