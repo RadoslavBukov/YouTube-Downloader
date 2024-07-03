@@ -13,14 +13,14 @@ from pytube import YouTube
 import logging
 from tkinterweb import HtmlFrame
 import webbrowser
-from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
-                     get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name)
+from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist, get_video_time,
+                     get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name,)
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("green")  # Themes: "blue" (standard), "green", "dark-blue"
 # Configure MoviePy logger to capture progress messages
-logger = logging.getLogger('moviepy')
-logger.setLevel(logging.INFO)
+# logger = logging.getLogger('moviepy')
+# logger.setLevel(logging.INFO)
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -34,6 +34,7 @@ class App(customtkinter.CTk):
         self.youtube_url = ''
         self.url_playlist = False
         self.video_url_name = ''
+        self.video_url_time = '00:00'
         self.quality_options = []
 
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
@@ -185,17 +186,20 @@ class App(customtkinter.CTk):
 
         self.label_video_name = customtkinter.CTkLabel(self.visualisation_frame, text=self.video_url_name,
                                                        cursor="hand2", font=("Helvetica", 16, "bold", "underline"))
-        self.label_video_name.grid(row=2, column=0, padx=30, pady=5, sticky="wn")
+        self.label_video_name.grid(row=2, column=0, columnspan=2, padx=30, pady=5, sticky="wn")
         self.label_video_name.bind("<Button-1>", self.open_url_to_system_browser)
-
+        # TODO: Return the video length
+        self.video_time = customtkinter.CTkLabel(self.visualisation_frame, text=f"00:00 - 00:00",
+                                                 font=("Helvetica", 16, "bold"))
+        self.video_time.grid(row=2, column=1, padx=(0, 30), pady=10, sticky="nse")
         self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=1, number_of_steps=18)
         self.slider_preview.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
         self.play_button = customtkinter.CTkButton(self.visualisation_frame, text="Play", fg_color="transparent",
                                                    border_width=0, text_color=("gray10", "#DCE4EE"))
-        self.play_button.grid(row=4, column=0, padx=(20, 20), pady=(10, 10), sticky="nsew")
+        self.play_button.grid(row=4, column=0, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.pause_button = customtkinter.CTkButton(self.visualisation_frame, text="Pause", fg_color="transparent",
                                                     border_width=0, text_color=("gray10", "#DCE4EE"))
-        self.pause_button.grid(row=4, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
+        self.pause_button.grid(row=4, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
 # SECTION - Download frame
         self.download_frame = customtkinter.CTkFrame(self)
@@ -215,19 +219,17 @@ class App(customtkinter.CTk):
 
         # Create download button
         self.download_button = customtkinter.CTkButton(self.download_frame, text="DOWNLOAD",
-                                                       command=self.loading_download_media, height=50)
+                                                       command=self.download_media, height=50)
         self.download_button.grid(row=2, column=0, columnspan=5, rowspan=2, padx=20, pady=(20, 0), sticky="nsew")
         # self.loadingbar = customtkinter.CTkProgressBar(self.download_frame)
         # self.loadingbar.grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 20), sticky="nsew")
         self.loading = customtkinter.CTkLabel(self.download_frame, text="Loading...", font=("Helvetica", 16, "bold"),
                                               text_color="#2fa572")
-        self.loading.grid(row=3, column=0, columnspan=2, padx=0, pady=10, sticky="nsew")
-
-        self.progress_label = customtkinter.CTkLabel(self.download_frame, text="Progress:")
-        self.progress_label.grid(row=5, column=0, columnspan=2, padx=20, pady=10, sticky="w")
-
-        self.progress_bar = customtkinter.CTkProgressBar(self.download_frame, mode='determinate')
-        self.progress_bar.grid(row=6, column=0, columnspan=3, padx=20, pady=10, sticky="w")
+        self.loading.grid(row=4, column=0, columnspan=2, padx=0, pady=10, sticky="nsew")
+        # self.progress_label = customtkinter.CTkLabel(self.download_frame, text="Progress:")
+        # self.progress_label.grid(row=5, column=0, columnspan=2, padx=20, pady=10, sticky="w")
+        # self.progress_bar = customtkinter.CTkProgressBar(self.download_frame, mode='determinate')
+        # self.progress_bar.grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="nsew")
 
 # SECTION Initial states:
         self.play_button.configure(state="disabled")
@@ -276,7 +278,9 @@ class App(customtkinter.CTk):
 
         self.youtube_url = url
         self.video_url_name = get_video_name(url)
+        self.video_url_time = get_video_time(url)
         self.label_video_name.configure(text=self.video_url_name)
+        self.video_time.configure(text=f"00:00 - {self.video_url_time}")
         self.update_search_result(url)
         self.update_quality_options(url)
         self.loading_2.grid_remove()
@@ -312,7 +316,6 @@ class App(customtkinter.CTk):
     def update_quality_options(self, url):
         try:
             self.quality_options = get_video_quality_options(url)
-            # sorted_qualiti_options = sorted(self.quality_options, key=self.extract_resolution)
         except Exception as e:
             messagebox.showerror("Error", f"Extracting quality options failed: {str(e)}")
 
@@ -345,6 +348,7 @@ class App(customtkinter.CTk):
         # self.loadingbar.after(200, lambda: self.download_media())
 
     def download_media(self):
+        self.loading_download_media()
         selected_audio_format = self.select_audio_format.get()
         selected_video_format = self.select_video_format.get()
         selected_quality = self.quality_var.get()
@@ -379,13 +383,10 @@ class App(customtkinter.CTk):
         end_time = self.end_input.get()
 
         try:
-            # Download function with progress callback
-            yt = YouTube(self.youtube_url, on_progress_callback=self.update_progress_bar)
-
             if audio_file:
-                download_function(yt, download_folder, file_format, start_time, end_time)
+                download_function(self.youtube_url, download_folder, file_format, start_time, end_time)
             else:
-                download_function(yt, download_folder, file_format, selected_quality, start_time,
+                download_function(self.youtube_url, download_folder, file_format, selected_quality, start_time,
                                   end_time)
             messagebox.showinfo("Success", "Download completed successfully!")
         except Exception as e:
@@ -393,12 +394,6 @@ class App(customtkinter.CTk):
 
         # self.loadingbar.stop()
         self.loading.grid_remove()
-
-    def update_progress_bar(self, stream, chunk, remaining):
-        # Calculate the percentage of the file that has been downloaded
-        progress = int((1 - remaining / stream.filesize) * 100)
-        self.progress_bar['value'] = progress
-
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)

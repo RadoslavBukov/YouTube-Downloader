@@ -163,5 +163,4 @@ cython_debug/
 #.idea/
 
 # Temp files:
-temp.py
-temp2.py
+temp/

@@ -93,7 +93,7 @@ def find_url_by_name(author, title):
 
 
 # Download Video from url, in selected type with selected quality.
-def download_youtube_video(youtube_url, download_path, media_type, quality, start_time='', end_time=''):
+def download_youtube_video(youtube_url, download_path, media_type, quality, start_time='', end_time='', logger=None):
     # Define the supported file types and their corresponding codecs
     supported_video_file_types = get_value_from_json("supported_video_file_types")
 
@@ -248,7 +248,7 @@ def merge_video_and_audio_file(video_file_path, audio_file_path):
 
         # Write the merged file to the original video file path
         merged_file_path = video_file_path.replace(".mp4", "_m.mp4")
-        final_video.write_videofile(merged_file_path, codec="libx264", audio_codec="aac", logger=logger)
+        final_video.write_videofile(merged_file_path, codec="libx264", audio_codec="aac")
 
         audio.close()
         video.close()
@@ -311,11 +311,20 @@ def get_video_name(youtube_url):
     author = yt.author
     title = yt.title
     name = f"{author} - {title}"
-    if len(name) > 40:
-        name = f"{author[:15]} - {title[:25]}" + "..." # Slice author and title separately
-
+    if len(name) > 30:
+        name = f"{author[:10]} - {title[:20]}" + "..." # Slice author and title separately
     return name
 
+def get_video_time(youtube_url):
+    try:
+        yt = YouTube(youtube_url)
+        length_seconds = yt.length
+        minutes = length_seconds // 60
+        seconds = length_seconds % 60
+        return f"{minutes}:{seconds:02}"  # format as min:sec
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 def get_video_quality_options(youtube_url):
     yt = YouTube(youtube_url)
@@ -471,7 +480,7 @@ class MyBarLogger(ProgressBarLogger):
 if __name__ == "__main__":
     # url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
     # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
-    url = "https://www.youtube.com/watch?v=7tSR_FgFClk"
+    url = "https://www.youtube.com/watch?v=WDaNJW_jEBo"
 
     # author = "BTR"
     # title = "Spasenie"
@@ -482,9 +491,8 @@ if __name__ == "__main__":
     # audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
     # video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
     #
-    logger = MyBarLogger()
     # download_youtube_video(url, download_pat, "mp4", "720p", "", "")
-    download_youtube_audio(url, download_path, "mp3", "", "")
+    download_youtube_audio(url, download_path, "mp3", "00:32", "")
     # trim_audio(audio_file_path, 95, 125)
     # trim_video(video_file_path, 95, 125)
     # print(extract_thumbnail_from_url(url))
