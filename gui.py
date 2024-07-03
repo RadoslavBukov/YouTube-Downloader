@@ -1,6 +1,7 @@
 """
 
 """
+import atexit
 import os
 import tkinter
 import customtkinter
@@ -13,7 +14,9 @@ from pytube import YouTube
 import logging
 from tkinterweb import HtmlFrame
 import webbrowser
-from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist, get_video_time,
+import pygame
+from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
+                     get_video_time, time_to_seconds,
                      get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name,)
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -28,6 +31,8 @@ class App(customtkinter.CTk):
 
         # static files
         script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the current script
+        self.delete_mp3_files()
+
         self.logo_path = os.path.join(script_dir, 'static_files', 'logo.jpg')
         self.youtube_frame_path = os.path.join(script_dir, 'static_files', 'empty_frame.jpg')
         self.default_img_active = True
@@ -35,7 +40,10 @@ class App(customtkinter.CTk):
         self.url_playlist = False
         self.video_url_name = ''
         self.video_url_time = '00:00'
+        self.current_time = 0
         self.quality_options = []
+        self.audio_file_path = r'C:\Users\bukov\Downloads\Music\Teddy Swims - Let Me Love You.mp3'
+        self.is_paused = True
 
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
         self.audio_format_options = list(self.audio_format_options_dict.keys())
@@ -188,16 +196,19 @@ class App(customtkinter.CTk):
                                                        cursor="hand2", font=("Helvetica", 16, "bold", "underline"))
         self.label_video_name.grid(row=2, column=0, columnspan=2, padx=30, pady=5, sticky="wn")
         self.label_video_name.bind("<Button-1>", self.open_url_to_system_browser)
-        # TODO: Return the video length
         self.video_time = customtkinter.CTkLabel(self.visualisation_frame, text=f"00:00 - 00:00",
                                                  font=("Helvetica", 16, "bold"))
         self.video_time.grid(row=2, column=1, padx=(0, 30), pady=10, sticky="nse")
-        self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=1, number_of_steps=18)
+        self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=100, command=self.on_slider_move)
         self.slider_preview.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
+        # self.slider = customtkinter.CTkSlider(self, from_=0, to=100, command=self.on_slider_move)
+        # self.slider.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
         self.play_button = customtkinter.CTkButton(self.visualisation_frame, text="Play", fg_color="transparent",
+                                                   command=lambda: self.play_audio(self.audio_file_path),
                                                    border_width=0, text_color=("gray10", "#DCE4EE"))
         self.play_button.grid(row=4, column=0, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.pause_button = customtkinter.CTkButton(self.visualisation_frame, text="Pause", fg_color="transparent",
+                                                    command=self.pause_audio,
                                                     border_width=0, text_color=("gray10", "#DCE4EE"))
         self.pause_button.grid(row=4, column=1, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
@@ -256,6 +267,7 @@ class App(customtkinter.CTk):
         title = self.title_input.get()
         self.youtube_url = find_url_by_name(artist, title)
         self.update_url(self.youtube_url, False)
+
         self.loading_1.grid_remove()
 
     def loading_update_url(self, url, playlist):
@@ -275,6 +287,12 @@ class App(customtkinter.CTk):
             self.url_playlist = True
         else:
             self.url_playlist = False
+            # Download Temp mp3 file
+            script_dir = os.path.dirname(os.path.abspath(__file__)) # Script path
+            download_temp_file_path = os.path.join(script_dir, "temp_mp3")
+            if not os.path.exists(download_temp_file_path):
+                os.makedirs(download_temp_file_path)
+            self.audio_file_path = download_youtube_audio(url, download_temp_file_path, "mp3")
 
         self.youtube_url = url
         self.video_url_name = get_video_name(url)
@@ -411,7 +429,81 @@ class App(customtkinter.CTk):
     def open_url_to_system_browser(self, event):
         webbrowser.open_new_tab(self.youtube_url)
 
+    # Players options:
+    def play_audio(self, mp3_file_path):
+        if mp3_file_path:
+            pygame.mixer.music.load(mp3_file_path)
+            pygame.mixer.music.play()
+            self.update_current_time()
+            self.is_paused = False
+            # pygame.mixer.
+
+    def pause_audio(self):
+        if self.is_paused:
+            pygame.mixer.music.unpause()
+            self.pause_button.configure(text="Pause")
+            self.is_paused = False
+        else:
+            pygame.mixer.music.pause()
+            self.pause_button.configure(text="Continue")
+            self.is_paused = True
+
+    def stop_audio(self):
+        pygame.mixer.music.stop()
+        self.is_paused = True
+
+    def update_current_time(self):
+        # Get the current playback position in milliseconds
+        current_pos = pygame.mixer.music.get_pos()
+
+        # Convert milliseconds to minutes and seconds
+        minutes, seconds = divmod(current_pos // 1000, 60)
+        self.current_time = f"{minutes:02}:{seconds:02}"
+
+        # Update the label or any other UI element with current time
+        self.video_time.configure(text=f"{self.current_time} - {self.video_url_time}")
+
+        # Schedule the update function every 1000ms (1 second)
+        self.after(1000, self.update_current_time)
+
+    def on_slider_move(self, value):
+        # Calculate the position in seconds based on the slider value
+        position = float(value) / 100 * time_to_seconds(self.video_url_time)
+        pygame.mixer.music.set_pos(position)  # set_pos takes seconds, so divide by 1000
+        self.update_current_time()
+
+    @staticmethod
+    def delete_mp3_files():
+        script_dir = os.path.dirname(os.path.abspath(__file__))  # Script path
+        download_temp_file_path = os.path.join(script_dir, "temp_mp3")
+        if not os.path.exists(download_temp_file_path):
+            os.makedirs(download_temp_file_path)
+        # List all files in the directory
+        file_list = os.listdir(download_temp_file_path)
+
+        # Iterate through all files
+        for file in file_list:
+            # Check if the file is a mp3 file
+            if file.endswith(".mp3"):
+                try:
+                    # Construct the full file path
+                    file_path = os.path.join(download_temp_file_path, file)
+
+                    # Attempt to delete the file
+                    os.remove(file_path)
+
+                    # Print success message
+                    print(f"Deleted: {file_path}")
+
+                except Exception as e:
+                    # Print error message if deletion fails
+                    print(f"Error deleting {file_path}: {e}")
+
+    def __del__(self):
+        self.delete_mp3_files()
+
 
 if __name__ == "__main__":
+    pygame.mixer.init()
     app = App()
     app.mainloop()

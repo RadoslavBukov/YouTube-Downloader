@@ -276,7 +276,7 @@ def trim_video(input_file, start_time, end_time):
     output_file = f"{input_filename}_trimmed{input_extension}"
 
     # Export the trimmed video clip to a new file
-    trimmed_clip.write_videofile(output_file, codec="libx264", audio_codec="aac", logger=logger)
+    trimmed_clip.write_videofile(output_file, codec="libx264", audio_codec="aac")
 
     # Close the video clip objects
     video_clip.close()
@@ -315,6 +315,7 @@ def get_video_name(youtube_url):
         name = f"{author[:10]} - {title[:20]}" + "..." # Slice author and title separately
     return name
 
+
 def get_video_time(youtube_url):
     try:
         yt = YouTube(youtube_url)
@@ -325,6 +326,7 @@ def get_video_time(youtube_url):
     except Exception as e:
         print(f"Error: {e}")
         return None
+
 
 def get_video_quality_options(youtube_url):
     yt = YouTube(youtube_url)
@@ -385,29 +387,6 @@ def time_to_seconds(time_str):
     except ValueError:
         raise ValueError("Invalid time format. Please use 'min:sec' format.")
 
-
-class MyBarLogger(ProgressBarLogger):
-
-    def __init__(self):
-        super().__init__()
-        self.last_message = ''
-        self.previous_percentage = 0
-
-    def callback(self, **changes):
-        # Every time the logger message is updated, this function is called with
-        # the `changes` dictionary of the form `parameter: new value`.
-        for (parameter, value) in changes.items():
-            # print ('Parameter %s is now %s' % (parameter, value))
-            self.last_message = value
-
-    def bars_callback(self, bar, attr, value, old_value=None):
-        # Every time the logger progress is updated, this function is called
-        if 'Writing video' in self.last_message:
-            percentage = (value / self.bars[bar]['total']) * 100
-            if percentage > 0 and percentage < 100:
-                if int(percentage) != self.previous_percentage:
-                    self.previous_percentage = int(percentage)
-                    print(self.previous_percentage)
 
 # def console_app():
 #     parser = argparse.ArgumentParser(description='YouTube Downloader and Converter')
@@ -492,7 +471,7 @@ if __name__ == "__main__":
     # video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
     #
     # download_youtube_video(url, download_pat, "mp4", "720p", "", "")
-    download_youtube_audio(url, download_path, "mp3", "00:32", "")
+    download_youtube_audio(url, download_path, "mp3", "", "")
     # trim_audio(audio_file_path, 95, 125)
     # trim_video(video_file_path, 95, 125)
     # print(extract_thumbnail_from_url(url))
