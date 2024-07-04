@@ -16,7 +16,7 @@ from tkinterweb import HtmlFrame
 import webbrowser
 import pygame
 from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
-                     get_video_time, time_to_seconds,
+                     get_video_time, str_time_to_seconds,
                      get_video_quality_options, extract_thumbnail_from_url, get_value_from_json, get_video_name,)
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -452,15 +452,17 @@ class App(customtkinter.CTk):
         pygame.mixer.music.stop()
         self.is_paused = True
 
-    def update_current_time(self):
-        # Get the current playback position in milliseconds
-        current_pos = pygame.mixer.music.get_pos()
+    def update_current_time(self, position=None):
+        if position is None:
+            current_pos = pygame.mixer.music.get_pos()
+        else:
+            current_pos = position
 
+        current_time = current_pos  # Convert milliseconds to seconds
         # Convert milliseconds to minutes and seconds
         minutes, seconds = divmod(current_pos // 1000, 60)
-        self.current_time = f"{minutes:02}:{seconds:02}"
 
-        # Update the label or any other UI element with current time
+        self.current_time = f"{minutes:02}:{seconds:02}"
         self.video_time.configure(text=f"{self.current_time} - {self.video_url_time}")
 
         # Schedule the update function every 1000ms (1 second)
@@ -468,9 +470,9 @@ class App(customtkinter.CTk):
 
     def on_slider_move(self, value):
         # Calculate the position in seconds based on the slider value
-        position = float(value) / 100 * time_to_seconds(self.video_url_time)
-        pygame.mixer.music.set_pos(position)  # set_pos takes seconds, so divide by 1000
-        self.update_current_time()
+        position = float(value) / 100 * str_time_to_seconds(self.video_url_time)
+        pygame.mixer.music.set_pos(position)  # set_pos takes seconds
+        self.update_current_time(position)
 
     @staticmethod
     def delete_mp3_files():
