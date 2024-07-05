@@ -6,7 +6,8 @@
             "wav": "pcm_s16le",
             "aac": "aac",
             "ogg": "libvorbis",
-            "flac": "flac"
+            "flac": "flac",
+            "m4r": "aac"
         },
         "supported_video_file_types": [
             "mp4",

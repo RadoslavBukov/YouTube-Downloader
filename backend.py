@@ -57,7 +57,7 @@ import requests
 from PIL import Image
 # from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.editor import VideoFileClip, AudioFileClip
-from proglog import ProgressBarLogger
+# from proglog import ProgressBarLogger
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
 from moviepy.editor import VideoFileClip
@@ -161,7 +161,6 @@ def download_youtube_video(youtube_url, download_path, media_type, quality, star
         return new_file
 
 
-# TODO: Make it work with "m4r" format
 def download_youtube_audio(youtube_url, download_path, media_type, start_time='', end_time=''):
     # Define the supported file types and their corresponding codecs
     supported_audio_file_types_dict = get_value_from_json("supported_audio_file_types")
@@ -189,9 +188,13 @@ def download_youtube_audio(youtube_url, download_path, media_type, start_time=''
     #TODO: Check if the file exist in temp files and use i
 
     # Convert to audio format if needed
-    audio = AudioFileClip(downloaded_file_path)
-    audio.write_audiofile(new_file, codec=codec)
-    audio.close()
+    if media_type == "m4r":
+        audio = AudioSegment.from_file(downloaded_file_path)
+        audio.export(new_file, format="mp4", codec="aac")
+    else:
+        audio = AudioFileClip(downloaded_file_path)
+        audio.write_audiofile(new_file, codec=codec)
+        audio.close()
 
     # Remove the original downloaded file
     os.remove(downloaded_file_path)
@@ -302,7 +305,10 @@ def trim_audio(input_file, start_time, end_time):
     output_file = f"{input_filename}_trimmed{input_extension}"
 
     # Export the trimmed audio segment to a new file
-    trimmed_segment.export(output_file, format=input_extension[1:])
+    if input_extension == ".m4r":
+        trimmed_segment.export(output_file, format="mp4", codec="aac")
+    else:
+        trimmed_segment.export(output_file, format=input_extension[1:])
 
     return output_file
 
@@ -313,7 +319,7 @@ def get_video_name(youtube_url):
     title = yt.title
     name = f"{author} - {title}"
     if len(name) > 30:
-        name = f"{author[:10]} - {title[:20]}" + "..." # Slice author and title separately
+        name = f"{author[:10]} - {title[:10]}" + "..." # Slice author and title separately
     return name
 
 
@@ -407,63 +413,63 @@ def search_file_in_temp_mp3_folder(mp3_file_name):
 
 
 # Section - Console App
-def console_app():
-    parser = argparse.ArgumentParser(description='YouTube Downloader and Converter')
-    parser.add_argument('action', choices=['video', 'audio', 'playlist'], help='Action to perform')
-    parser.add_argument('url_or_author', help='YouTube URL, author, or playlist URL')
-    parser.add_argument('title', nargs='?', default=None, help='Title of the video (optional, if author is provided)')
-    parser.add_argument('download_path', help='Path to download the files')
-    parser.add_argument('media_type', choices=['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'mp3', 'wav', 'aac', 'ogg', 'flac', 'm4r'], default='mp3', help='Media type (default: mp3)')
-    parser.add_argument('--quality', default="", help='Quality of video (e.g., 720p)')
-    parser.add_argument('--start_time', default="", help='Start time for trimming (format: min:sec)')
-    parser.add_argument('--end_time', default="", help='End time for trimming (format: min:sec)')
-    args = parser.parse_args()
+# def console_app():
+#     parser = argparse.ArgumentParser(description='YouTube Downloader and Converter')
+#     parser.add_argument('action', choices=['video', 'audio', 'playlist'], help='Action to perform')
+#     parser.add_argument('url_or_author', help='YouTube URL, author, or playlist URL')
+#     parser.add_argument('title', nargs='?', default=None, help='Title of the video (optional, if author is provided)')
+#     parser.add_argument('download_path', help='Path to download the files')
+#     parser.add_argument('media_type', choices=['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'mp3', 'wav', 'aac', 'ogg', 'flac', 'm4r'], default='mp3', help='Media type (default: mp3)')
+#     parser.add_argument('--quality', default="", help='Quality of video (e.g., 720p)')
+#     parser.add_argument('--start_time', default="", help='Start time for trimming (format: min:sec)')
+#     parser.add_argument('--end_time', default="", help='End time for trimming (format: min:sec)')
+#     args = parser.parse_args()
+#
+#     # Debug Print: Print all arguments received
+#     print("Received Arguments:")
+#     print(f"- Action: {args.action}")
+#     print(f"- URL or Author: {args.url_or_author}")
+#     if args.title:
+#         print(f"- Title: {args.title}")
+#     print(f"- Download Path: {args.download_path}")
+#     print(f"- Media Type: {args.media_type}")
+#     print(f"- Quality: {args.quality}")
+#     print(f"- Start Time: {args.start_time}")
+#     print(f"- End Time: {args.end_time}")
+#
+#     # Determine if the provided url_or_author is a URL or author + title
+#     if args.title:
+#         # Assume url_or_author is the author and title is provided
+#         youtube_url = find_url_by_name(args.url_or_author, args.title)
+#         if not youtube_url:
+#             print("Error: Could not find video for the given author and title.")
+#             return
+#     else:
+#         # Assume url_or_author is the actual URL
+#         youtube_url = args.url_or_author
+#
+#     if args.action == 'video':
+#         try:
+#             download_youtube_video(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
+#             print(f"Video downloaded successfully to {args.download_path}")
+#         except Exception as e:
+#             print(f"Error downloading video: {str(e)}")
+#     elif args.action == 'audio':
+#         try:
+#             download_youtube_audio(youtube_url, args.download_path, args.media_type, args.start_time, args.end_time)
+#             print(f"Audio downloaded successfully to {args.download_path}")
+#         except Exception as e:
+#             print(f"Error downloading audio: {str(e)}")
+#     elif args.action == 'playlist':
+#         try:
+#             download_playlist(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
+#             print(f"Playlist downloaded successfully to {args.download_path}")
+#         except Exception as e:
+#             print(f"Error downloading playlist: {str(e)}")
 
-    # Debug Print: Print all arguments received
-    print("Received Arguments:")
-    print(f"- Action: {args.action}")
-    print(f"- URL or Author: {args.url_or_author}")
-    if args.title:
-        print(f"- Title: {args.title}")
-    print(f"- Download Path: {args.download_path}")
-    print(f"- Media Type: {args.media_type}")
-    print(f"- Quality: {args.quality}")
-    print(f"- Start Time: {args.start_time}")
-    print(f"- End Time: {args.end_time}")
 
-    # Determine if the provided url_or_author is a URL or author + title
-    if args.title:
-        # Assume url_or_author is the author and title is provided
-        youtube_url = find_url_by_name(args.url_or_author, args.title)
-        if not youtube_url:
-            print("Error: Could not find video for the given author and title.")
-            return
-    else:
-        # Assume url_or_author is the actual URL
-        youtube_url = args.url_or_author
-
-    if args.action == 'video':
-        try:
-            download_youtube_video(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
-            print(f"Video downloaded successfully to {args.download_path}")
-        except Exception as e:
-            print(f"Error downloading video: {str(e)}")
-    elif args.action == 'audio':
-        try:
-            download_youtube_audio(youtube_url, args.download_path, args.media_type, args.start_time, args.end_time)
-            print(f"Audio downloaded successfully to {args.download_path}")
-        except Exception as e:
-            print(f"Error downloading audio: {str(e)}")
-    elif args.action == 'playlist':
-        try:
-            download_playlist(youtube_url, args.download_path, args.media_type, args.quality, args.start_time, args.end_time)
-            print(f"Playlist downloaded successfully to {args.download_path}")
-        except Exception as e:
-            print(f"Error downloading playlist: {str(e)}")
-
-
-if __name__ == "__main__":
-    console_app()
+# if __name__ == "__main__":
+#     console_app()
 
 
 
@@ -478,22 +484,22 @@ if __name__ == "__main__":
 
 
 # Function Tests
-# if __name__ == "__main__":
+if __name__ == "__main__":
     # url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
     # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
-    # url = "https://www.youtube.com/watch?v=WDaNJW_jEBo"
+    url = "https://www.youtube.com/watch?v=WDaNJW_jEBo"
 
     # author = "BTR"
     # title = "Spasenie"
     # print(find_url_by_name(author, title, api_key))
     #
     # url = find_url_by_name(author, title)
-    # download_path = r"C:\Users\bukov\Downloads\Music"
+    download_path = r"C:\Users\bukov\Downloads\Music"
     # audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
     # video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
     #
     # download_youtube_video(url, download_pat, "mp4", "720p", "", "")
-    # download_youtube_audio(url, download_path, "mp3", "", "")
+    download_youtube_audio(url, download_path, "m4r", "00:32", "01:12")
     # trim_audio(audio_file_path, 95, 125)
     # trim_video(video_file_path, 95, 125)
     # print(extract_thumbnail_from_url(url))

@@ -1,7 +1,6 @@
 """
 
 """
-import atexit
 import os
 import tkinter
 import customtkinter
@@ -12,7 +11,6 @@ from PIL import Image, ImageTk
 from proglog import ProgressBarLogger
 from pytube import YouTube
 import logging
-from tkinterweb import HtmlFrame
 import webbrowser
 import pygame
 from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
@@ -371,6 +369,8 @@ class App(customtkinter.CTk):
         selected_video_format = self.select_video_format.get()
         selected_quality = self.quality_var.get()
         download_folder = self.download_path.get()
+        start_time = self.start_input.get()
+        end_time = self.end_input.get()
 
         if not download_folder:
             messagebox.showerror("Error", "Please select a download folder.")
@@ -379,6 +379,17 @@ class App(customtkinter.CTk):
         if selected_audio_format == "Audio:" and selected_video_format == "Video:":
             messagebox.showerror("Error", "Please select either audio or video format.")
             return
+
+        if selected_audio_format == "m4r":
+            # Check if start_time and end_time are provided and calculate duration
+            start_trim_time = 0 if start_time == "" else str_time_to_seconds(start_time)
+            end_trim_time = 0 if end_time == "" else str_time_to_seconds(end_time)
+            if end_trim_time - start_trim_time > 40 or (start_trim_time == 0 and end_trim_time == 0):
+                proceed = messagebox.askyesno("Info",
+                                                  "The maximum length for iPhone ringtones is 40 seconds. Do you want to proceed?")
+                if not proceed:
+                    return
+
 
         if selected_audio_format == "Audio:":
             audio_file = False
@@ -396,9 +407,6 @@ class App(customtkinter.CTk):
                 download_function = download_youtube_video
 
         selected_quality = self.quality_options[selected_quality]
-
-        start_time = self.start_input.get()
-        end_time = self.end_input.get()
 
         try:
             if audio_file:
