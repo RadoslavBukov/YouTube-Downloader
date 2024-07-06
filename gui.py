@@ -34,6 +34,7 @@ class App(customtkinter.CTk):
 
         self.logo_path = os.path.join(script_dir, 'static_files', 'logo.jpg')
         self.youtube_frame_path = os.path.join(script_dir, 'static_files', 'empty_frame.jpg')
+        self.volume_icon_path = os.path.join(script_dir, 'static_files', 'volume_icon.png')
         self.default_img_active = True
         self.youtube_url = ''
         self.url_playlist = False
@@ -200,8 +201,15 @@ class App(customtkinter.CTk):
         self.video_time.grid(row=2, column=1, padx=(0, 30), pady=10, sticky="nse")
         self.slider_preview = customtkinter.CTkSlider(self.visualisation_frame, from_=0, to=100, command=self.on_slider_move)
         self.slider_preview.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
-        # self.slider = customtkinter.CTkSlider(self, from_=0, to=100, command=self.on_slider_move)
-        # self.slider.grid(row=3, column=0, padx=20, columnspan=2, sticky="ew")
+        self.slider_volume = customtkinter.CTkSlider(self.visualisation_frame, orientation="vertical", from_=0, to=1, command=self.set_volume)
+        self.slider_volume.grid(row=0, column=3, rowspan=2, padx=(10, 10), pady=(10, 10), sticky="ns")
+
+        # Load the volume icon
+        self.volume_icon = customtkinter.CTkImage(light_image=Image.open(self.volume_icon_path),
+                                                 dark_image=Image.open(self.volume_icon_path), size=(20, 20))
+        self.volume_label = customtkinter.CTkLabel(self.visualisation_frame, image=self.volume_icon, text='')
+        self.volume_label.grid(row=2, column=3, padx=(10, 10), pady=(10, 10))
+
         self.play_button = customtkinter.CTkButton(self.visualisation_frame, text="Play", fg_color="transparent",
                                                    command=lambda: self.play_audio(self.audio_file_path),
                                                    border_width=0, text_color=("gray10", "#DCE4EE"))
@@ -244,6 +252,7 @@ class App(customtkinter.CTk):
 # SECTION Initial states:
         self.play_button.configure(state="disabled")
         self.pause_button.configure(state="disabled")
+        self.slider_preview.set(0)
         self.slider_preview.configure(state="disabled")
         self.download_button.configure(state="disabled")
         self.appearance_mode_options.set("Dark")
@@ -488,6 +497,9 @@ class App(customtkinter.CTk):
 
         minutes, seconds = divmod(int(position), 60)
         self.current_time = f"{minutes:02}:{seconds:02}"
+
+    def set_volume(self, value):
+        pygame.mixer.music.set_volume(value)
 
     @staticmethod
     def delete_mp3_files():
