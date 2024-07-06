@@ -51,12 +51,12 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("YouTube Downloader")
-        self.geometry(f"{1350}x{800}")
+        self.geometry(f"{1280}x{720}")
 
-        # configure grid layout (4x4)
-        self.grid_columnconfigure(1, weight=2)
+        # configure grid layout (2x2)
+        self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(2, weight=1)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
+        self.grid_rowconfigure((0, 1), weight=2)
 
 # SECTION - Sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0)
@@ -89,11 +89,12 @@ class App(customtkinter.CTk):
 
 # SECTION - Search Section with TabView's
         self.tabview = customtkinter.CTkTabview(self)
-        self.tabview.grid(row=0, column=1, padx=(20, 0), pady=(20, 0), sticky="nsew")
+        self.tabview.grid(row=0, column=1, padx=(20, 0), pady=(10, 0), sticky="nsew")
+        self.tabview.grid_rowconfigure((3, 4), weight=1)
         self.tabview.add("by Name")
         self.tabview.add("by URL")
-        self.tabview.tab("by Name").grid_columnconfigure(0, weight=1)  # configure grid of individual tabs
-        self.tabview.tab("by URL").grid_columnconfigure(0, weight=1)
+        self.tabview.tab("by Name").grid_columnconfigure((0, 1), weight=1)  # configure grid of individual tabs
+        self.tabview.tab("by URL").grid_columnconfigure((0, 1), weight=1)
 
         # Tab by Name
         self.name_input = customtkinter.CTkEntry(self.tabview.tab("by Name"), placeholder_text="Artist")
@@ -132,7 +133,9 @@ class App(customtkinter.CTk):
 
 # SECTION - Options frame
         self.options_frame = customtkinter.CTkFrame(self)
-        self.options_frame.grid(row=1, column=1, padx=(20, 20), pady=(20, 0), sticky="nsew")
+        self.options_frame.grid(row=1, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
+        self.options_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+        self.options_frame.grid_columnconfigure((0, 1, 2), weight=1)
         # Select format
         self.label_format = customtkinter.CTkLabel(self.options_frame, text="Select format: ",
                                                    font=("Helvetica", 16, "bold"))
@@ -166,13 +169,15 @@ class App(customtkinter.CTk):
 
         # Start time input
         self.start_input = customtkinter.CTkEntry(self.options_frame, placeholder_text="Start time (00:00)")
-        self.start_input.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="nsew")
+        self.start_input.grid(row=6, column=1, padx=20, pady=(0, 20), sticky="nsew")
         self.end_input = customtkinter.CTkEntry(self.options_frame, placeholder_text="End time (00:00)")
-        self.end_input.grid(row=6, column=1, padx=20, pady=(0, 20), sticky="nsew")
+        self.end_input.grid(row=6, column=2, padx=20, pady=(0, 20), sticky="nsew")
 
 # SECTION - Visualisation frame
         self.visualisation_frame = customtkinter.CTkFrame(self)
-        self.visualisation_frame.grid(row=0, column=2, padx=(20, 20), pady=(20, 0), sticky="nsew")
+        self.visualisation_frame.grid(row=0, column=2, padx=(20, 20), pady=(10, 0), sticky="nsew")
+        self.visualisation_frame.grid_rowconfigure((0, 1, 2, 4), weight=1)
+        self.visualisation_frame.grid_columnconfigure((0, 1, 2), weight=1)
         # Result
         # self.label_result = customtkinter.CTkLabel(self.visualisation_frame, text="Search result: ",
         #                                            font=("Helvetica", 16, "bold"))
@@ -221,10 +226,13 @@ class App(customtkinter.CTk):
 
 # SECTION - Download frame
         self.download_frame = customtkinter.CTkFrame(self)
-        self.download_frame.grid(row=1, column=2, padx=(20, 20), pady=(20, 0), sticky="nsew")
+        self.download_frame.grid(row=1, column=2, padx=(20, 20), pady=(10, 10), sticky="nsew")
+        self.download_frame.grid_rowconfigure((0, 1, 4), weight=1)
+        self.download_frame.grid_columnconfigure((0, 1), weight=1 )
+
         self.label_result = customtkinter.CTkLabel(self.download_frame, text="Download to: ",
                                                    font=("Helvetica", 16, "bold"))
-        self.label_result.grid(row=0, column=0, padx=20, pady=20, sticky="w")
+        self.label_result.grid(row=0, column=0, padx=20, pady=10, sticky="w")
         # Create entry to display selected path
         self.download_path = customtkinter.CTkEntry(self.download_frame, width=250)
         self.download_path.grid(row=1, column=0, padx=(20, 5), pady=20, sticky="w")
@@ -435,12 +443,6 @@ class App(customtkinter.CTk):
         # self.loadingbar.stop()
         self.loading.grid_remove()
 
-    def change_appearance_mode_event(self, new_appearance_mode: str):
-        customtkinter.set_appearance_mode(new_appearance_mode)
-
-    def change_scaling_event(self, new_scaling: str):
-        new_scaling_float = int(new_scaling.replace("%", "")) / 100
-        customtkinter.set_widget_scaling(new_scaling_float)
 
     def browse_folder(self):
         folder_selected = filedialog.askdirectory()
@@ -500,6 +502,16 @@ class App(customtkinter.CTk):
 
     def set_volume(self, value):
         pygame.mixer.music.set_volume(value)
+
+    def change_appearance_mode_event(self, new_appearance_mode: str):
+        customtkinter.set_appearance_mode(new_appearance_mode)
+
+    def change_scaling_event(self, new_scaling: str):
+        new_scaling_float = int(new_scaling.replace("%", "")) / 100
+        customtkinter.set_widget_scaling(new_scaling_float)
+        self.loading.grid_remove()
+        self.loading_1.grid_remove()
+        self.loading_2.grid_remove()
 
     @staticmethod
     def delete_mp3_files():
