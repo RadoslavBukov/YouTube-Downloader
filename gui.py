@@ -4,9 +4,10 @@
 import os
 import tkinter
 import customtkinter
-# from CTkMessagebox import CTkMessagebox
+from CTkMessagebox import CTkMessagebox
 from tkinter import messagebox
 from tkinter import filedialog
+# from CTkMessagebox import CTkMessagebox
 from PIL import Image, ImageTk
 from proglog import ProgressBarLogger
 from pytube import YouTube
@@ -38,7 +39,7 @@ class App(customtkinter.CTk):
         self.url_playlist = False
         self.video_url_name = ''
         self.video_url_time = '00:00'
-        self.current_time = 0
+        self.current_time = '00:00'
         self.quality_options = []
         self.audio_file_path = r'C:\Users\bukov\Downloads\Music\Teddy Swims - Let Me Love You.mp3'
         self.is_paused = True
@@ -273,10 +274,14 @@ class App(customtkinter.CTk):
         self.loading_2.after(100, lambda: self.update_url(url, playlist))
 
     def update_url(self, url, playlist):
+        # Unload previous audio
+        pygame.mixer.music.unload()
+
         # Check if the URL is a valid YouTube URL
         try:
             yt = YouTube(url)
         except Exception as e:
+            # CTkMessagebox(title="Error", message="Something went wrong!!!", icon="cancel")
             messagebox.showerror("Error", f"Invalid YouTube URL: {str(e)}")
             self.loading_2.grid_remove()
             return
@@ -460,27 +465,29 @@ class App(customtkinter.CTk):
         pygame.mixer.music.stop()
         self.is_paused = True
 
-    def update_current_time(self, position=None):
-        if position is None:
-            current_pos = pygame.mixer.music.get_pos()
-        else:
-            current_pos = position
+    def update_current_time(self):
+        if pygame.mixer.music.get_busy():
+            # Increment the current_time by 1 second
+            current_minutes, current_seconds = map(int, self.current_time.split(':'))
+            current_seconds += 1
+            if current_seconds >= 60:
+                current_seconds = 0
+                current_minutes += 1
+            self.current_time = f"{current_minutes:02}:{current_seconds:02}"
 
-        current_time = current_pos  # Convert milliseconds to seconds
-        # Convert milliseconds to minutes and seconds
-        minutes, seconds = divmod(current_pos // 1000, 60)
-
-        self.current_time = f"{minutes:02}:{seconds:02}"
+            # Update the GUI elements
         self.video_time.configure(text=f"{self.current_time} - {self.video_url_time}")
 
         # Schedule the update function every 1000ms (1 second)
-        self.after(1000, self.update_current_time)
+        self.video_time.after(1000, self.update_current_time)
 
     def on_slider_move(self, value):
         # Calculate the position in seconds based on the slider value
         position = float(value) / 100 * str_time_to_seconds(self.video_url_time)
         pygame.mixer.music.set_pos(position)  # set_pos takes seconds
-        self.update_current_time(position)
+
+        minutes, seconds = divmod(int(position), 60)
+        self.current_time = f"{minutes:02}:{seconds:02}"
 
     @staticmethod
     def delete_mp3_files():
