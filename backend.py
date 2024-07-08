@@ -10,17 +10,26 @@ Function used:
         input: youtube_url, download_path, file_type, quality, start_time, end_time
         output: path (of downloaded file)
     - download_youtube_audio:
-        input: youtube_url, download_path, file_type, quality, start_time, end_time
+        input: youtube_url, download_path, file_type, start_time, end_time
         output: path (of downloaded file)
     - download_playlist:
         input: youtube_url, download_path, file_type, quality, start_time, end_time
         output: path (of downloaded files)
+    - merge_video_and_audio_file(video_file_path, audio_file_path):
+        input: video_file_path, audio_file_path
+        output: video_file_path (merged - video + audio)
     - trim_video:
         input: file_path, start_time(in sec), end_time(in sec)
         output: path (of trimmed file)
     - trim_audio:
         input: file_path, start_time(in sec), end_time(in sec)
         output: path (of trimmed file)
+    - get_video_name()
+        input: youtube_url
+        output: name (string)
+    - get_video_time()
+        input: youtube_url
+        output: time (string - in format min:sec)
     - get_video_quality_options:
         input: youtube_url
         output: list ( with all existing resolutions of the video)
@@ -55,15 +64,12 @@ import json
 from io import BytesIO
 import requests
 from PIL import Image
-# from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.editor import VideoFileClip, AudioFileClip
 # from proglog import ProgressBarLogger
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
-from moviepy.editor import VideoFileClip
 from googleapiclient.discovery import build
 import os
-import sys
 import argparse # Work with console
 
 
@@ -94,7 +100,7 @@ def find_url_by_name(author, title):
 
 # Download Video from url, in selected type with selected quality.
 def download_youtube_video(youtube_url, download_path, media_type, quality, start_time='', end_time=''):
-    # Define the supported file types and their corresponding codecs
+    # Define the supported file types
     supported_video_file_types = get_value_from_json("supported_video_file_types")
 
     # Check if the provided file type is supported
@@ -107,7 +113,7 @@ def download_youtube_video(youtube_url, download_path, media_type, quality, star
     except Exception as e:
         return f"Invalid YouTube URL: {str(e)}"
 
-    # Select the video stream based on the desired quality
+    # Select the video stream based on the set quality
     if quality == "":
         video_stream = yt.streams.get_highest_resolution()
         quality = video_stream.resolution
@@ -185,7 +191,7 @@ def download_youtube_audio(youtube_url, download_path, media_type, start_time=''
 
     # Determine the base and new file path
     new_file = os.path.join(download_path, f"{yt.author} - {yt.title}.{media_type}")
-    #TODO: Check if the file exist in temp files and use i
+    #TODO: Check if the file exist in temp files and use it
 
     # Convert to audio format if needed
     if media_type == "m4r":
@@ -258,11 +264,12 @@ def merge_video_and_audio_file(video_file_path, audio_file_path):
         video.close()
         os.remove(video_file_path)
         os.remove(audio_file_path)
-        return final_video
+        return merged_file_path
 
     except Exception as e:
         print(f"Error merging video and audio: {e}")
         return None
+
 
 def trim_video(input_file, start_time, end_time):
     # Create a VideoFileClip object
@@ -338,7 +345,7 @@ def get_video_time(youtube_url):
 def get_video_quality_options(youtube_url):
     yt = YouTube(youtube_url)
 
-    # Get all streams (both video and audio)
+    # Get all streams
     streams = yt.streams.filter(type="video").order_by('resolution').asc()
 
     # Extract unique resolutions from the streams
@@ -351,8 +358,8 @@ def get_video_quality_options(youtube_url):
 
 
 def extract_thumbnail_from_url(img_url):
-    max_width = 500
-    max_height = 300
+    max_width = 450
+    max_height = 250
 
     yt = YouTube(img_url)
     thumbnail_url = yt.thumbnail_url
@@ -426,16 +433,16 @@ def search_file_in_temp_mp3_folder(mp3_file_name):
 #     args = parser.parse_args()
 #
 #     # Debug Print: Print all arguments received
-#     print("Received Arguments:")
-#     print(f"- Action: {args.action}")
-#     print(f"- URL or Author: {args.url_or_author}")
-#     if args.title:
-#         print(f"- Title: {args.title}")
-#     print(f"- Download Path: {args.download_path}")
-#     print(f"- Media Type: {args.media_type}")
-#     print(f"- Quality: {args.quality}")
-#     print(f"- Start Time: {args.start_time}")
-#     print(f"- End Time: {args.end_time}")
+#     # print("Received Arguments:")
+#     # print(f"- Action: {args.action}")
+#     # print(f"- URL or Author: {args.url_or_author}")
+#     # if args.title:
+#     #     print(f"- Title: {args.title}")
+#     # print(f"- Download Path: {args.download_path}")
+#     # print(f"- Media Type: {args.media_type}")
+#     # print(f"- Quality: {args.quality}")
+#     # print(f"- Start Time: {args.start_time}")
+#     # print(f"- End Time: {args.end_time}")
 #
 #     # Determine if the provided url_or_author is a URL or author + title
 #     if args.title:
@@ -466,40 +473,38 @@ def search_file_in_temp_mp3_folder(mp3_file_name):
 #             print(f"Playlist downloaded successfully to {args.download_path}")
 #         except Exception as e:
 #             print(f"Error downloading playlist: {str(e)}")
-
-
+#
+#
 # if __name__ == "__main__":
 #     console_app()
-
-
 
 
 # SECTION: Tests
 # Console App Tests
 # python backend.py audio https://www.youtube.com/watch?v=6Ejga4kJUts "C:\Users\bukov\Downloads" "mp3"
-# python youtube_downloader.py <youtube_url> <download_path> audio --quality <quality> --start <start_time> --end <end_time>
+# python backend.py <youtube_url> <download_path> audio --quality <quality> --start <start_time> --end <end_time>
 # python backend.py audio "The Cranberries" "Zombie" r"C:\Users\bukov\Downloads" "mp3"/
 # python backend.py <action> <"youtube_url" or "Artist Name"> <download_path> <media_type> --quality <quality> --start <start_time> --end <end_time>
 # python backend.py playlist "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID" "C:\Users\name\Downloads" "mp3"
 
 
 # Function Tests
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # url = "https://www.youtube.com/watch?v=6Ejga4kJUts"
     # api_key = "AIzaSyCl3cSv9YEpBVeIHiu0orL3qhZUqm_py6c"
-    url = "https://www.youtube.com/watch?v=WDaNJW_jEBo"
+# url = "https://www.youtube.com/watch?v=WDaNJW_jEBo"
 
     # author = "BTR"
     # title = "Spasenie"
     # print(find_url_by_name(author, title, api_key))
     #
     # url = find_url_by_name(author, title)
-    download_path = r"C:\Users\bukov\Downloads\Music"
+# download_path = r"C:\Users\bukov\Downloads\Music"
     # audio_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp3"
     # video_file_path = r"C:\Users\bukov\Downloads\The Cranberries - Zombie.mp4"
     #
-    # download_youtube_video(url, download_pat, "mp4", "720p", "", "")
-    download_youtube_audio(url, download_path, "m4r", "00:32", "01:12")
+# download_youtube_video(url, download_path, "mp4", "144p", "00:33", "01:12")
+    # download_youtube_audio(url, download_path, "m4r", "00:32", "01:12")
     # trim_audio(audio_file_path, 95, 125)
     # trim_video(video_file_path, 95, 125)
     # print(extract_thumbnail_from_url(url))
