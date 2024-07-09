@@ -85,15 +85,7 @@ class App(customtkinter.CTk):
         self.volume_icon_path = os.path.join(script_dir, 'static_files', 'volume_icon.png')
 
         # Variables
-        self.default_img_active = True
-        self.youtube_url = ''
-        self.url_playlist = False
-        self.video_url_name = ''
-        self.video_url_time = '00:00'
-        self.current_time = '00:00'
-        self.quality_options = []
-        self.audio_file_path = r'C:\Users\bukov\Downloads\Music\Teddy Swims - Let Me Love You.mp3'
-        self.is_paused = True
+        self.initial_variables()
 
         self.audio_format_options_dict = get_value_from_json("supported_audio_file_types")
         self.audio_format_options = list(self.audio_format_options_dict.keys())
@@ -319,6 +311,18 @@ class App(customtkinter.CTk):
             # self.loadingbar.stop()
 
 # SECTION - Methods
+
+    def initial_variables(self):
+        self.default_img_active = True
+        self.youtube_url = ''
+        self.url_playlist = False
+        self.video_url_name = ''
+        self.video_url_time = '00:00'
+        self.current_time = '00:00'
+        self.quality_options = []
+        self.audio_file_path = ''
+        self.is_paused = True
+
     def loading_find_url_by_artist_name(self):
         self.loading_1.grid()
         self.loading_1.after(100, lambda: self.find_url_by_artist_name())
@@ -327,7 +331,7 @@ class App(customtkinter.CTk):
         artist = self.name_input.get()
         title = self.title_input.get()
         self.youtube_url = find_url_by_name(artist, title)
-        self.update_url(self.youtube_url, False)
+        self.loading_update_url(self.youtube_url, False)
         self.loading_1.grid_remove()
 
     def loading_update_url(self, url, playlist):
@@ -337,6 +341,8 @@ class App(customtkinter.CTk):
     def update_url(self, url, playlist):
         # Unload previous audio
         pygame.mixer.music.unload()
+        self.initial_variables()
+        self.clear_quality_options()
         # Check if the URL is a valid YouTube URL
         try:
             yt = YouTube(url)
@@ -415,6 +421,9 @@ class App(customtkinter.CTk):
             self.options_frame.grid_columnconfigure(col, weight=1, uniform="equal")
 
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 0), sticky="w")
+
+    def clear_quality_options(self):
+        self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 60), sticky="w")
 
     def update_options_audio(self, value=None):
         self.select_audio_format.set("Audio:")
