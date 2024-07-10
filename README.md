@@ -16,7 +16,7 @@ Welcome to the YouTube Downloader! This application allows you to download YouTu
 
 ## Graphical User interface
 <div align="center">
-  <img src="hhttps://raw.githubusercontent.com/RadoslavBukov/YouTube-Downloader/main/github_img/GYI_fetched.jpg" alt="gui">
+  <img src="https://github.com/RadoslavBukov/YouTube-Downloader/blob/main/github_img/GUI_fetched.jpg" alt="gui">
 </div>
 The main window of the application is divided into several sections:
 
@@ -36,7 +36,7 @@ Includes a couple of static images for visualization and a `setup.json` file, wh
 This script allows users to download video and audio from YouTube with specific requirements for format, quality, and length. It supports operations via a console application interface, making it easy to download content based on various criteria.
 #### Block diagram
 <div align="center">
-  <img src="hhttps://raw.githubusercontent.com/RadoslavBukov/YouTube-Downloader/main/github_img/backend_blockdiagram.png" alt="block_diagram">
+  <img src="https://github.com/RadoslavBukov/YouTube-Downloader/blob/main/github_img/backend_blockdiagram.png" alt="block_diagram">
 </div>
 
 ### `gui.py`
