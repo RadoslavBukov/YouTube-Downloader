@@ -27,7 +27,7 @@ The main window of the application is divided into several sections:
 - **Download Frame**: Specify the download location and initiate downloads.
 
 ## Code Overview
-### static_files Folder
+### static_files
 Includes a couple of static images for visualization and a `setup.json` file, which contains settings about the app.
 
 - **setup.json**: Contains configuration settings for the application.
@@ -41,6 +41,21 @@ This script allows users to download video and audio from YouTube with specific 
 
 ### `gui.py`
 The `App` class is a graphical user interface (GUI) application built using `customtkinter` and `tkinter`. This application allows users to search, preview, and download YouTube videos and playlists in various formats and qualities. The app also includes audio playback functionalities.
+
+### External libraries:
+<div align="center">
+
+  | Library           | Usege                                                                                                                                                            |
+  |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | _googleapiclient_ | This is part of the Google API client library used to interact with YouTube's Data API v3. It's specifically used for searching videos based on author and title |
+  | _pytube_          | Used for interacting with YouTube. It allows you to fetch video URLs, download video and audio streams, and handle playlists                                     |
+  | _moviepy_         | A module for video editing, used here for trimming video files and merging video and audio files                                                                 |
+  | _pydub_           | A library for manipulating audio files. It's used here for trimming audio files.                                                                                 |
+  | _Pillow_          | Used for handling images, particularly for extracting thumbnails from YouTube video URLs.                                                                        |
+  | _customtkinter_   | Used for Graphical User Interface, custom extension around Tkinter, providing additional styling options.                                                        |
+  | _pygame_          | Primarily use for audio playback, to play audio files downloaded from YouTube.                                                                                   |
+  | _argparse_        | A module for parsing command-line arguments. It's used to create a command-line interface (CLI) for your YouTube downloader so users can specify parameters      |
+</div>
 
 ## Instalation
 Clone the repository to your local machine, use the following command in your terminal or command prompt:
@@ -77,6 +92,7 @@ The YouTube Downloader application is a versatile and user-friendly tool for dow
 - **Batch Download**: Add functionality to support batch downloading of multiple videos at once.
 
 ### Users Note
+
 If you encounter the following error while using this application:
  ```bash
 pytube.exceptions.RegexMatchError: get_throttling_function_name: could not find match for multiple
