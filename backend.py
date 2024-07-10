@@ -487,9 +487,9 @@ if __name__ == "__main__":
 
 # SECTION: Tests
 # Console App Tests
-# python backend.py audio https://www.youtube.com/watch?v=6Ejga4kJUts "C:\Users\bukov\Downloads" "mp3"
+# python backend.py audio https://www.youtube.com/watch?v=6Ejga4kJUts "C:\Users\bukov\Downloads\Music" "mp3"
 # python backend.py <youtube_url> <download_path> audio --quality <quality> --start <start_time> --end <end_time>
-# python backend.py audio "The Cranberries" "Zombie" r"C:\Users\bukov\Downloads" "mp3"/
+# python backend.py audio "The Cranberries" "Zombie" r"C:\Users\bukov\Downloads\Music" "mp3"
 # python backend.py <action> <"youtube_url" or "Artist Name"> <download_path> <media_type> --quality <quality> --start <start_time> --end <end_time>
 # python backend.py playlist "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID" "C:\Users\name\Downloads" "mp3"
 
