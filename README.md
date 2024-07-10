@@ -107,4 +107,7 @@ pip install --upgrade pytube
 2. *Check YouTube Service Status*: Verify if there are any ongoing issues or downtime affecting video downloads on YouTube's Status Dashboard.
 3. *Report the Issue*: If the problem persists after updating Pytube, please report it to the Pytube developers on GitHub Issues. Provide detailed information about the error to help diagnose and fix the issue.
 
+PyTube Issue link:
+https://github.com/pytube/pytube/issues/1954
+
 **Thank you for your understanding and patience.**
