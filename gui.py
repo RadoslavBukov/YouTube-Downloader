@@ -332,7 +332,6 @@ class App(customtkinter.CTk):
         title = self.title_input.get()
         self.youtube_url = find_url_by_name(artist, title)
         self.loading_update_url(self.youtube_url, False)
-        self.loading_1.grid_remove()
 
     def loading_update_url(self, url, playlist):
         self.loading_2.grid()
@@ -370,6 +369,7 @@ class App(customtkinter.CTk):
         self.video_time.configure(text=f"00:00 - {self.video_url_time}")
         self.update_search_result(url)
         self.update_quality_options(url)
+        self.loading_1.grid_remove()
         self.loading_2.grid_remove()
 
     def update_search_result(self, url):

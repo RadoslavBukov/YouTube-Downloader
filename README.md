@@ -57,7 +57,7 @@ The `App` class is a graphical user interface (GUI) application built using `cus
   | _argparse_        | A module for parsing command-line arguments. It's used to create a command-line interface (CLI) for your YouTube downloader so users can specify parameters      |
 </div>
 
-## Instalation
+## Installation
 Clone the repository to your local machine, use the following command in your terminal or command prompt:
 ```bash
 git clone https://github.com/RadoslavBukov/YouTube-Downloader.git
