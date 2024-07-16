@@ -320,6 +320,7 @@ class App(customtkinter.CTk):
         self.video_url_time = '00:00'
         self.current_time = '00:00'
         self.quality_options = []
+        self.radio_buttons = []
         self.audio_file_path = ''
         self.is_paused = True
 
@@ -340,8 +341,6 @@ class App(customtkinter.CTk):
     def update_url(self, url, playlist):
         # Unload previous audio
         pygame.mixer.music.unload()
-        self.initial_variables()
-        self.clear_quality_options()
         # Check if the URL is a valid YouTube URL
         try:
             yt = YouTube(url)
@@ -405,8 +404,15 @@ class App(customtkinter.CTk):
             self.quality_options = get_video_quality_options(url)
         except Exception as e:
             messagebox.showerror("Error", f"Extracting quality options failed: {str(e)}")
+            return
+
+        # Clear existing radio buttons if any
+        if hasattr(self, 'radio_buttons'):
+            for radio_button in self.radio_buttons:
+                radio_button.destroy()
 
         # Add new radio buttons based on quality options
+        self.radio_buttons = []
         for i, quality in enumerate(self.quality_options):
             row = 3 + i // 3
             col = i % 3
@@ -415,15 +421,13 @@ class App(customtkinter.CTk):
                                                         variable=self.quality_var,
                                                         value=i)
             radio_button.grid(row=row, column=col, pady=5, padx=1, sticky="n")
+            self.radio_buttons.append(radio_button)
 
         # Ensure the grid layout adjusts accordingly
         for col in range(3):
             self.options_frame.grid_columnconfigure(col, weight=1, uniform="equal")
 
         self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 0), sticky="w")
-
-    def clear_quality_options(self):
-        self.label_quality_group.grid(row=2, column=0, padx=20, pady=(20, 60), sticky="w")
 
     def update_options_audio(self, value=None):
         self.select_audio_format.set("Audio:")
