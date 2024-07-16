@@ -179,8 +179,8 @@ class App(customtkinter.CTk):
     # SECTION - Options frame
             self.options_frame = customtkinter.CTkFrame(self)
             self.options_frame.grid(row=1, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
-            self.options_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
-            self.options_frame.grid_columnconfigure((0, 1, 2), weight=1)
+            self.options_frame.grid_rowconfigure((0, 1, 2, 5, 6, 7), weight=1)
+            self.options_frame.grid_columnconfigure((1, 2), weight=1)
             # Select format
             self.label_format = customtkinter.CTkLabel(self.options_frame, text="Select format: ",
                                                        font=("Helvetica", 16, "bold"))
