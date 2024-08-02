@@ -60,6 +60,7 @@ from PIL import Image, ImageTk
 # from proglog import ProgressBarLogger
 from pytube import YouTube
 import logging
+from multiprocessing import freeze_support
 import webbrowser
 import pygame
 from backend import (find_url_by_name, download_youtube_video, download_youtube_audio, download_playlist,
@@ -593,6 +594,7 @@ class App(customtkinter.CTk):
 
 
 if __name__ == "__main__":
+    freeze_support()
     pygame.mixer.init()
     app = App()
     app.mainloop()

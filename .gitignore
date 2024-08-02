@@ -166,3 +166,4 @@ cython_debug/
 # Temp files:
 temp/
 temp_mp3
+executable.py

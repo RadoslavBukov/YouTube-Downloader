@@ -68,7 +68,7 @@ from moviepy.editor import VideoFileClip, AudioFileClip
 from pytube import YouTube, Playlist
 from pydub import AudioSegment
 from googleapiclient.discovery import build
-import os
+import os, re
 import argparse # Work with console
 
 
@@ -195,8 +195,10 @@ def download_youtube_audio(youtube_url, download_path, media_type, start_time=''
 
     # Determine the base and new file path
     title = yt.title.split(" (")[0] if "(" in yt.title else yt.title
+    title = sanitize_filename(title)
+    author = sanitize_filename(yt.author)
 
-    new_file = os.path.join(download_path, f"{yt.author} - {title}.{media_type}")
+    new_file = os.path.join(download_path, f"{author} - {title}.{media_type}")
     #TODO: Check if the file exist in temp files and use it
 
     # Convert to audio format if needed
@@ -423,6 +425,9 @@ def search_file_in_temp_mp3_folder(mp3_file_name):
         return temp_mp3_file
     else:
         return None
+
+def sanitize_filename(filename):
+    return re.sub(r'[\\/*?:"<>|]', "", filename)
 
 
 # Section - Console App
